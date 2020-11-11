@@ -2,7 +2,6 @@ package dev.lb.simplebase.util.task;
 
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
@@ -33,11 +32,6 @@ class SuccessfulTask extends DoneTask {
 	}
 
 	@Override
-	public boolean isPrevented() {
-		return false;
-	}
-
-	@Override
 	public State getState() {
 		return State.SUCCESS;
 	}
@@ -59,19 +53,19 @@ class SuccessfulTask extends DoneTask {
 	}
 
 	@Override
-	public Task onCancelled(Consumer<TaskCancellationException> action) {
+	public Task onCancelled(Consumer<CancelledException> action) {
 		Objects.requireNonNull(action, "'action' for onCancelled must not be null");
 		return this;
 	}
 
 	@Override
-	public Task onCancelledAsync(Consumer<TaskCancellationException> action) {
+	public Task onCancelledAsync(Consumer<CancelledException> action) {
 		Objects.requireNonNull(action, "'action' for onCancelledAsync must not be null");
 		return this;
 	}
 
 	@Override
-	public Task onCancelledAsync(Consumer<TaskCancellationException> action, ExecutorService executor) {
+	public Task onCancelledAsync(Consumer<CancelledException> action, ExecutorService executor) {
 		Objects.requireNonNull(action, "'action' for onCancelledAsync must not be null");
 		Objects.requireNonNull(executor, "'executor' for onCancelledAsync must not be null");
 		return this;
@@ -120,25 +114,9 @@ class SuccessfulTask extends DoneTask {
 	public boolean hasUnconsumedException() {
 		return false;
 	}
-
-	@Override
-	public boolean startAsync() throws TaskCancellationException, RejectedExecutionException {
-		return false;
-	}
 	
 	@Override
-	public boolean startAsync(ExecutorService executor) throws TaskCancellationException, RejectedExecutionException {
-		Objects.requireNonNull(executor, "'executor' for startAsync must not be null");
-		return false;
-	}
-
-	@Override
-	public boolean startSync() throws TaskCancellationException {
-		return false;
-	}
-	
-	@Override
-	public boolean executeSync() throws TaskCancellationException, Throwable {
-		return false;
+	public CancelledException getCancellationException() {
+		return null;
 	}
 }

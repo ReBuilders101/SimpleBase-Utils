@@ -6,8 +6,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.Lock;
 import dev.lb.simplebase.util.annotation.Internal;
 import dev.lb.simplebase.util.annotation.StaticType;
 import dev.lb.simplebase.util.task.Task.State;
@@ -57,21 +55,19 @@ public final class Tasks {
 	
 	/**
 	 * Creates a task that is immediately cancelled.
-	 * @param prevented {@code true} if the action associated with this task was never executed, {@code false} if the action has (partially) run
 	 * @return A {@link Task} that is always in state {@link State#CANCELLED}
 	 */
-	public static Task cancelled(boolean prevented) {
-		return new CancelledTask(prevented, new TaskCancellationException(null));
+	public static Task cancelled() {
+		return new CancelledTask(new CancelledException(null));
 	}
 	
 	/**
 	 * Creates a task that is immediately cancelled.
-	 * @param prevented {@code true} if the action associated with this task was never executed, {@code false} if the action has (partially) run
 	 * @param payload The object associated with the cancellation
 	 * @return A {@link Task} that is always in state {@link State#CANCELLED}
 	 */
-	public static Task cancelled(boolean prevented, Object payload) {
-		return new CancelledTask(prevented, new TaskCancellationException(payload));
+	public static Task cancelled(Object payload) {
+		return new CancelledTask(new CancelledException(payload));
 	}
 	
 	/**
@@ -134,21 +130,20 @@ public final class Tasks {
 	}
 	
 	/**
-	 * Creates a {@link Task} that will wait until a {@link Condition} is signalled.
+	 * Creates a {@link Task} that will wait until a {@link TaskCompleter} is signalled.
 	 * <p>
 	 * <b>Important:</b> The condition object should be created explicitly for this task, as
 	 * user actions done on the task may also signal the condition (e.g. a call to {@link Task#cancel()}
 	 * will signal the condition to resume waiting threads).
 	 * </p>
-	 * @param lock The {@link Lock} that owns teh condition object
-	 * @param waitingCondition The {@link Condition} to await
-	 * @return A {@link Task} that will complete when the condition is signalled
+	 * @param completionSource The {@link TaskCompleter} that will complete the task
+	 * @return A {@link Task} that will complete when the completion source is signalled
 	 * @throws NullPointerException When {@code lock} or {@code waitingCondition} is {@code null}
+	 * @throws IllegalArgumentException When the {@code completionSource} was already used to construct another task
 	 */
-	public static Task startBlocking(Lock lock, Condition waitingCondition) {
-		Objects.requireNonNull(lock, "'lock' parameter must not be null");
-		Objects.requireNonNull(waitingCondition, "'waitingCondition' parameter must not be null");
-		throw new UnsupportedOperationException("TODO");
+	public static Task startBlocking(TaskCompleter completionSource) {
+		Objects.requireNonNull(completionSource, "'completionSource' parameter must not be null");
+		return new ConditionWaiterTask(completionSource);
 	}
 	
 	/**

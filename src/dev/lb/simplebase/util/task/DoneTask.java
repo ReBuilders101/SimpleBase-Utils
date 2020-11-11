@@ -2,6 +2,7 @@ package dev.lb.simplebase.util.task;
 
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
@@ -29,6 +30,11 @@ abstract class DoneTask implements Task{
 		return false;
 	}
 
+	@Override
+	public final boolean isPrevented() {
+		return false;
+	}
+	
 	@Override
 	public final boolean isDone() {
 		return true;
@@ -74,20 +80,20 @@ abstract class DoneTask implements Task{
 	}
 
 	@Override
-	public final Task await(CancelCondition condition) throws InterruptedException, TaskCancellationException {
+	public final Task await(CancelCondition condition) throws InterruptedException, CancelledException {
 		Objects.requireNonNull(condition, "'condition' parameter must not be null");
 		if(Thread.interrupted()) throw new InterruptedException("Thread had interruped status set when entering Task.await(CancelCondition)");
 		return this;
 	}
 
 	@Override
-	public final Task awaitUninterruptibly(CancelCondition condition) throws TaskCancellationException {
+	public final Task awaitUninterruptibly(CancelCondition condition) throws CancelledException {
 		Objects.requireNonNull(condition, "'condition' parameter must not be null");
 		return this;
 	}
 
 	@Override
-	public final Task await(long timeout, TimeUnit unit, CancelCondition condition) throws InterruptedException, TimeoutException, TaskCancellationException {
+	public final Task await(long timeout, TimeUnit unit, CancelCondition condition) throws InterruptedException, TimeoutException, CancelledException {
 		Objects.requireNonNull(unit, "'unit' parameter must not be null");
 		Objects.requireNonNull(condition, "'condition' parameter must not be null");
 		if(Thread.interrupted()) throw new InterruptedException("Thread had interruped status set when entering Task.await(long, TimeUnit, CancelCondition)");
@@ -95,7 +101,7 @@ abstract class DoneTask implements Task{
 	}
 
 	@Override
-	public final Task awaitUninterruptibly(long timeout, TimeUnit unit, CancelCondition condition) throws TimeoutException, TaskCancellationException {
+	public final Task awaitUninterruptibly(long timeout, TimeUnit unit, CancelCondition condition) throws TimeoutException, CancelledException {
 		Objects.requireNonNull(unit, "'unit' parameter must not be null");
 		Objects.requireNonNull(condition, "'condition' parameter must not be null");
 		return this;
@@ -119,5 +125,26 @@ abstract class DoneTask implements Task{
 		Objects.requireNonNull(executor, "'executor' for onCompletionAsync must not be null");
 		executor.submit(() -> action.accept(this));
 		return this;
+	}
+	
+	@Override
+	public final boolean startAsync() throws CancelledException, RejectedExecutionException {
+		return false;
+	}
+	
+	@Override
+	public final boolean startAsync(ExecutorService executor) throws CancelledException, RejectedExecutionException {
+		Objects.requireNonNull(executor, "'executor' for startAsync must not be null");
+		return false;
+	}
+
+	@Override
+	public final boolean startSync() throws CancelledException {
+		return false;
+	}
+	
+	@Override
+	public final boolean executeSync() throws CancelledException, Throwable {
+		return false;
 	}
 }

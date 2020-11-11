@@ -2,7 +2,6 @@ package dev.lb.simplebase.util.task;
 
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.RejectedExecutionException;
 import java.util.function.Consumer;
 
 import dev.lb.simplebase.util.annotation.Internal;
@@ -10,11 +9,9 @@ import dev.lb.simplebase.util.annotation.Internal;
 @Internal
 class CancelledTask extends DoneTask {
 
-	private final boolean prevented;
-	private final TaskCancellationException exception;
+	private final CancelledException exception;
 	
-	CancelledTask(boolean prevented, TaskCancellationException exception) {
-		this.prevented = prevented;
+	CancelledTask(CancelledException exception) {
 		this.exception = Objects.requireNonNull(exception, "Cancelled task must be created with an exception");
 	}
 	
@@ -31,11 +28,6 @@ class CancelledTask extends DoneTask {
 	@Override
 	public boolean isFailed() {
 		return false;
-	}
-
-	@Override
-	public boolean isPrevented() {
-		return prevented;
 	}
 
 	@Override
@@ -71,14 +63,14 @@ class CancelledTask extends DoneTask {
 	}
 
 	@Override
-	public Task onCancelled(Consumer<TaskCancellationException> action) {
+	public Task onCancelled(Consumer<CancelledException> action) {
 		Objects.requireNonNull(action, "'action' for onCancelled must not be null");
 		action.accept(exception);
 		return this;
 	}
 
 	@Override
-	public Task onCancelledAsync(Consumer<TaskCancellationException> action, ExecutorService executor) {
+	public Task onCancelledAsync(Consumer<CancelledException> action, ExecutorService executor) {
 		Objects.requireNonNull(action, "'action' for onCancelledAsync must not be null");
 		Objects.requireNonNull(executor, "'executor' for onCancelledAsync must not be null");
 		executor.submit(() -> action.accept(exception));
@@ -117,27 +109,7 @@ class CancelledTask extends DoneTask {
 	}
 
 	@Override
-	public final boolean startAsync() throws TaskCancellationException, RejectedExecutionException {
-		if(prevented) throw exception;
-		return false;
-	}
-	
-	@Override
-	public final boolean startAsync(ExecutorService executor) throws TaskCancellationException, RejectedExecutionException {
-		Objects.requireNonNull(executor, "'executor' for startAsync must not be null");
-		if(prevented) throw exception;
-		return false;
-	}
-
-	@Override
-	public boolean startSync() throws TaskCancellationException {
-		if(prevented) throw exception;
-		return false;
-	}
-	
-	@Override
-	public boolean executeSync() throws TaskCancellationException, Throwable {
-		if(prevented) throw exception;
-		return false;
+	public CancelledException getCancellationException() {
+		return exception;
 	}
 }

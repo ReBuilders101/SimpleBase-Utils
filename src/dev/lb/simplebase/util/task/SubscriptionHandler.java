@@ -80,6 +80,14 @@ public class SubscriptionHandler<Context> {
 	public boolean hasBeenExecuted() {
 		return (state.get() & ALREADY_EXECUTED_FLAG) != 0;
 	}
+	
+	/**
+	 * The current context for the subscribed methods. The context may be {@code null} before {@link #execute(Supplier)} is called.
+	 * @return The current context object.
+	 */
+	public Context getContext() {
+		return context;
+	}
 
 	/**
 	 * Adds an action to the subscriber list if possible, or runs the action immediately.
@@ -116,6 +124,40 @@ public class SubscriptionHandler<Context> {
 		}
 		return;
 	}
+	
+	void subscribeRunnable(Runnable action) {
+		Objects.requireNonNull(action, "'action' for onCancelled must not be null");
+
+		//Spin-wait until we are collecting, so we can switch into adding mode
+		while(!state.compareAndSet(COLLECTING, ADDING)) {
+			//Except if it is already cancelled, then we should run synchronously now
+			if((state.get() & ALREADY_EXECUTED_FLAG) != 0) {
+				//Spin-wait (again) until draining of queued actions is done
+				while(state.get() == RUNNING) {
+					Thread.onSpinWait();
+				}
+				//Run synchrounously (state here will be EXPIRED
+				action.run();
+				//Done here, prevent spinning any more
+				return;
+			} else {
+				Thread.onSpinWait();
+			}
+		}
+		//State here is ADDING because the CAS in the previous spin wait succeeded
+		actions.add((ex) -> action.run()); //Add our element
+		//Reset state to COLLECTING and check for any desyncs
+		if(!state.compareAndSet(ADDING, COLLECTING)) {
+			throw new ConcurrentModificationException("CancelConditionImpl ADDING state modified by concurrent thread");
+		}
+		return;
+	}
+	
+	void subscribeRunnableAsync(Runnable action, ExecutorService executor) {
+		Objects.requireNonNull(action, "'action' for onCancelledAsync must not be null");
+		Objects.requireNonNull(executor, "'executor' for onCancelledAsync must not be null");
+		subscribeRunnable(() -> executor.submit(action));
+	}
 
 	/**
 	 * Adds an action to the subscriber list if possible, or runs the action immediately.
@@ -137,11 +179,11 @@ public class SubscriptionHandler<Context> {
 	 * A {@link CancelCondition} that can be associated with any action
 	 */
 	@Internal
-	static final class StandaloneCancelCondition extends SubscriptionHandler<TaskCancellationException> implements CancelCondition {
+	static final class StandaloneCancelCondition extends SubscriptionHandler<CancelledException> implements CancelCondition {
 
 		@Override
 		public boolean cancel(Object exceptionPayload) {
-			return execute(() -> new TaskCancellationException(exceptionPayload));
+			return execute(() -> new CancelledException(exceptionPayload));
 		}
 
 		@Override
@@ -150,15 +192,25 @@ public class SubscriptionHandler<Context> {
 		}
 
 		@Override
-		public CancelCondition onCancelled(Consumer<TaskCancellationException> action) {
+		public CancelCondition onCancelled(Consumer<CancelledException> action) {
 			subscribe(action); //Subscribe checks for null
 			return this;
 		}
 
 		@Override
-		public CancelCondition onCancelledAsync(Consumer<TaskCancellationException> action, ExecutorService executor) {
+		public CancelCondition onCancelledAsync(Consumer<CancelledException> action, ExecutorService executor) {
 			subscribeAsync(action, executor); //SubscribeAsync checks for null
 			return this;
+		}
+
+		@Override
+		public CancelledException getCancellationException() {
+			return getContext();
+		}
+
+		@Override
+		public boolean isCancelled() {
+			return hasBeenExecuted();
 		}
 		
 	}

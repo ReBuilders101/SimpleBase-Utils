@@ -5,21 +5,21 @@ import java.util.Optional;
 import dev.lb.simplebase.util.annotation.Internal;
 
 /**
- * A {@link TaskCancellationException} is thrown when a {@link Task} or a wating operation on
+ * A {@link CancelledException} is thrown when a {@link Task} or a wating operation on
  * a task (such as {@link Task#await(CancelCondition)} is cancelled with a {@link CancelCondition}.
  */
-public final class TaskCancellationException extends Exception {
+public final class CancelledException extends Exception {
 	private static final long serialVersionUID = -8238488721299782503L;
 	
 	private final Object payload;
 	
 	/**
-	 * Creates a new {@link TaskCancellationException}.
+	 * Creates a new {@link CancelledException}.
 	 * @param message A non-{@code null} error message
 	 * @param payload A payload object to store with the exception. May be {@code null}
 	 */
 	@Internal
-	TaskCancellationException(Object payload) {
+	CancelledException(Object payload) {
 		super("Task was cancelled before completion");
 		this.payload = payload;
 	}

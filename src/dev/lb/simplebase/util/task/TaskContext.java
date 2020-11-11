@@ -55,4 +55,14 @@ public interface TaskContext {
 	 * @throws NullPointerException When {@code unit} or {@code continueAction} is {@code null}
 	 */
 	public void setTimeout(long timeout, TimeUnit unit, TaskAction continueAction) throws TaskDeferredExecption;
+	
+	/**
+	 * Fails the current {@link Task} by throwing a {@link TaskFailureRequestException} with the
+	 * error message.
+	 * @param message The message for the exception
+	 * @throws TaskFailureRequestException Always
+	 */
+	public default void fail(String message) {
+		throw new TaskFailureRequestException(message);
+	}
 }

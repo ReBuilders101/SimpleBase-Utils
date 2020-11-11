@@ -19,7 +19,7 @@ public interface CancelCondition {
 	
 	/**
 	 * Attempts to cancel the associated task or blocking action.
-	 * @param exceptionPayload A nullable object that will be available on the {@link TaskCancellationException} caused by cancelling the task
+	 * @param exceptionPayload A nullable object that will be available on the {@link CancelledException} caused by cancelling the task
 	 * @return {@code true} if cancellation was successful, {@code false} if not
 	 */
 	public boolean cancel(/*Nullable*/ Object exceptionPayload);
@@ -32,6 +32,19 @@ public interface CancelCondition {
 	public boolean isCancellationExpired();
 	
 	/**
+	 * A {@link CancelledException} that was responsible for the cancellation of this condition.
+	 * Will be {@code null} if {@link #isCancelled()} is {@code false}.
+	 * @return The {@link CancelledException} that cancelled this condition
+	 */
+	public CancelledException getCancellationException();
+	
+	/**
+	 * Checks whether this condition has already been cancelled.
+	 * @return {@code true} if the condition was cancelled, {@code false} otherwise
+	 */
+	public boolean isCancelled();
+	
+	/**
 	 * Adds a handler that will be run when this condition is cancelled.
 	 * <p>
 	 * If the condition is already cancelled when calling this method, the the action will
@@ -42,7 +55,7 @@ public interface CancelCondition {
 	 * @return This {@link CancelCondition}
 	 * @throws NullPointerException When {@code action} is {@code null}
 	 */
-	public CancelCondition onCancelled(Consumer<TaskCancellationException> action);
+	public CancelCondition onCancelled(Consumer<CancelledException> action);
 	/**
 	 * Adds a handler that will be run with the {@link Task#defaultExecutor()} when this condition is cancelled.
 	 * <p>
@@ -54,7 +67,7 @@ public interface CancelCondition {
 	 * @return This {@link CancelCondition}
 	 * @throws NullPointerException When {@code action} is {@code null}
 	 */
-	public default CancelCondition onCancelledAsync(Consumer<TaskCancellationException> action) {
+	public default CancelCondition onCancelledAsync(Consumer<CancelledException> action) {
 		return onCancelledAsync(action, Task.defaultExecutor());
 	}
 	/**
@@ -69,7 +82,7 @@ public interface CancelCondition {
 	 * @return This {@link CancelCondition}
 	 * @throws NullPointerException When {@code action} or {@code executor} is {@code null}
 	 */
-	public CancelCondition onCancelledAsync(Consumer<TaskCancellationException> action, ExecutorService executor);
+	public CancelCondition onCancelledAsync(Consumer<CancelledException> action, ExecutorService executor);
 	
 	/**
 	 * Creates a standalone {@link CancelCondition} not directly associated with any task or action.
