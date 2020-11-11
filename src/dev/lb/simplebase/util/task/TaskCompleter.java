@@ -6,6 +6,7 @@ import java.util.function.BooleanSupplier;
 import java.util.function.Predicate;
 
 import dev.lb.simplebase.util.annotation.Threadsafe;
+import dev.lb.simplebase.util.task.Task.State;
 
 /**
  * Provides methods to complete a blocking task.
@@ -21,12 +22,21 @@ public final class TaskCompleter {
 	private static final int SETTING = 1;
 	private static final int SET = 2;
 	
+	/**
+	 * Creates a {@link TaskCompleter} that is not associated with any task
+	 */
 	public TaskCompleter() {
 		this.state = new AtomicInteger(UNSET);
 		this.successComplete = null;
 		this.failComplete = null;
 	}
 	
+	/**
+	 * Attempts to complete the task with a {@link State#SUCCESS} state. This can fail when the associated
+	 * task is already completed or is being completed by another thread.
+	 * @return {@code true} if the task has switched to {@link State#SUCCESS}, {@code false} if not
+	 * @throws IllegalStateException When the completer is not associated with any task
+	 */
 	public boolean signalSuccess() {
 		if(state.get() == UNSET) {
 			throw new IllegalStateException("TaskCompletionSource is not set up with a task");
@@ -38,6 +48,13 @@ public final class TaskCompleter {
 		}
 	}
 	
+	/**
+	 * Attempts to complete the task with a {@link State#FAILED} state and an exception. This can fail when the associated
+	 * task is already completed or is being completed by another thread.
+	 * @param throwable The {@link Throwable} that caused the task to fail
+	 * @return {@code true} if the task has switched to {@link State#FAILED}, {@code false} if not
+	 * @throws IllegalStateException When the completer is not associated with any task
+	 */
 	public boolean signalFailure(Throwable throwable) {
 		if(state.get() == UNSET) {
 			throw new IllegalStateException("TaskCompletionSource is not set up with a task");
