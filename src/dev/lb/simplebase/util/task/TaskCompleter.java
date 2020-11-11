@@ -79,4 +79,11 @@ public final class TaskCompleter {
 		}
 	}
 	
+	/**
+	 * Creates a {@link TaskCompleter} that is not associated with any task
+	 * @return A new {@link TaskCompleter}
+	 */
+	public static TaskCompleter create() {
+		return new TaskCompleter();
+	}
 }
