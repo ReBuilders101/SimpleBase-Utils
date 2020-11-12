@@ -2,7 +2,6 @@ package dev.lb.simplebase.util.task;
 
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
@@ -42,11 +41,6 @@ abstract class DoneTask implements Task{
 
 	@Override
 	public final boolean isRunning() {
-		return false;
-	}
-	
-	@Override
-	public final boolean isStartable() {
 		return false;
 	}
 
@@ -125,26 +119,5 @@ abstract class DoneTask implements Task{
 		Objects.requireNonNull(executor, "'executor' for onCompletionAsync must not be null");
 		executor.submit(() -> action.accept(this));
 		return this;
-	}
-	
-	@Override
-	public final boolean startAsync() throws CancelledException, RejectedExecutionException {
-		return false;
-	}
-	
-	@Override
-	public final boolean startAsync(ExecutorService executor) throws CancelledException, RejectedExecutionException {
-		Objects.requireNonNull(executor, "'executor' for startAsync must not be null");
-		return false;
-	}
-
-	@Override
-	public final boolean startSync() throws CancelledException {
-		return false;
-	}
-	
-	@Override
-	public final boolean executeSync() throws CancelledException, Throwable {
-		return false;
 	}
 }

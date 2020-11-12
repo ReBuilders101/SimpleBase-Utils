@@ -1,9 +1,6 @@
 package dev.lb.simplebase.util.task;
 
 import java.util.ConcurrentModificationException;
-import java.util.Objects;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import dev.lb.simplebase.util.annotation.Internal;
@@ -147,11 +144,6 @@ class ConditionWaiterTask extends BlockingTask {
 	}
 
 	@Override
-	public boolean isStartable() {
-		return false; //Always already started
-	}
-
-	@Override
 	public boolean isPrevented() {
 		return false; //Always already started
 	}
@@ -236,27 +228,6 @@ class ConditionWaiterTask extends BlockingTask {
 		}
 
 		return this;
-	}
-
-	@Override
-	public boolean startAsync() throws CancelledException, RejectedExecutionException {
-		return false; //Always already started
-	}
-
-	@Override
-	public boolean startAsync(ExecutorService executor) throws CancelledException, RejectedExecutionException {
-		Objects.requireNonNull(executor, "'executor' for startAsync must not be null");
-		return false; //Always already started
-	}
-
-	@Override
-	public boolean startSync() throws CancelledException {
-		return false; //Always already started
-	}
-
-	@Override
-	public boolean executeSync() throws CancelledException, Throwable {
-		return false; //Always already started
 	}
 
 	@Override

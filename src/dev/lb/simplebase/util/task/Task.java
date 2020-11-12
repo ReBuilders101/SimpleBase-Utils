@@ -2,7 +2,6 @@ package dev.lb.simplebase.util.task;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ForkJoinPool;
-import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
@@ -10,7 +9,7 @@ import java.util.function.Consumer;
 import dev.lb.simplebase.util.annotation.Threadsafe;
 
 /**
- * Represents a potentially asynchrounous {@link TaskAction} or other blocking operation without result.
+ * Represents a potentially asynchrounous action or other blocking operation without result.
  */
 @Threadsafe
 public interface Task extends CancelCondition {
@@ -58,12 +57,6 @@ public interface Task extends CancelCondition {
 	 */
 	public boolean isFailed();
 	/**
-	 * Returns {@code true} when the task can be started with {@link #startAsync()} or {@link #startSync()}, {@code false}
-	 * otherwise. A not-started task can be cancelled to prevent it from ever running.
-	 * @return {@code true} when the task can still be started {@code false} otherwise
-	 */
-	public boolean isStartable();
-	/**
 	 * Returns {@code true} when the task is cancelled and has never run, {@code false} otherwise.
 	 * A prevented task is always cancelled and done.
 	 * @return {@code true} when the task is cancelled and has never run, {@code false} otherwise.
@@ -89,11 +82,11 @@ public interface Task extends CancelCondition {
 	 */
 	public static enum State {
 		/**
-		 * The task has been created and initialized with a {@link TaskAction}, but has not been executed yet.
+		 * The task has been created and initialized with a action, but has not been executed yet.
 		 */
 		INITIALIZED,
 		/**
-		 * The {@link TaskAction} associated with this task is currently running.
+		 * The action associated with this task is currently running.
 		 */
 		RUNNING,
 		/**
@@ -105,7 +98,7 @@ public interface Task extends CancelCondition {
 		 */
 		SUCCESS,
 		/**
-		 * The task is done and failed because of an exception thrown by the {@link TaskAction}.
+		 * The task is done and failed because of an exception thrown by the action.
 		 */
 		FAILED;
 	}
@@ -198,7 +191,7 @@ public interface Task extends CancelCondition {
 	
 	//Get value
 	/**
-	 * Checks for any exceptions thrown by the {@link TaskAction} associated with this task, and rethrows that exception.
+	 * Checks for any exceptions thrown by the action associated with this task, and rethrows that exception.
 	 * <p>
 	 * This action will consume the exception: When calling this method twice in succession, the second call will never throw an
 	 * exception even if the first one did. This ensures that the same exception is only thrown and handled once.
@@ -209,7 +202,7 @@ public interface Task extends CancelCondition {
 	 */
 	public Task checkFailure() throws Throwable;
 	/**
-	 * Checks for any exceptions of type {@code E} thrown by the {@link TaskAction} associated with this task, and rethrows that exception.
+	 * Checks for any exceptions of type {@code E} thrown by the action associated with this task, and rethrows that exception.
 	 * <p>
 	 * This action will consume the exception: When calling this method twice in succession, the second call will never throw an
 	 * exception even if the first one did. This ensures that the same exception is only thrown and handled once.
@@ -258,7 +251,7 @@ public interface Task extends CancelCondition {
 	 */
 	public <E extends Throwable> E getFailure(Class<E> expectedType) throws ClassCastException;
 	/**
-	 * Checks for any exceptions thrown by the {@link TaskAction} associated with this task,
+	 * Checks for any exceptions thrown by the action associated with this task,
 	 * or for cancellation of this task.
 	 * If one is present, it is wrapped in an unchecked {@link TaskFailureException} and thrown.
 	 * <p>
@@ -270,56 +263,6 @@ public interface Task extends CancelCondition {
 	 * @throws CancelledException When the task was cancelled
 	 */
 	public Task checkSuccess() throws TaskFailureException, CancelledException;
-	
-	//Manual
-	/**
-	 * Attempts to start this task using the default executor ({@link #defaultExecutor()}). A task can only be
-	 * started once.
-	 * @return {@code true} if the task was started successfully, {@code false} if it was already running or done
-	 * @throws CancelledException When the task cannot be started because it was cancelled (see {@link #isPrevented()})
-	 * @throws RejectedExecutionException When the task cannot be started because the {@link ExecutorService} used for asynchrounous
-	 * execution rejected the task
-	 */
-	public boolean startAsync() throws CancelledException, RejectedExecutionException;
-	/**
-	 * Attempts to start this task using the supplied executor. A task can only be
-	 * started once.
-	 * @param executor The {@link ExecutorService} that will run this task
-	 * @return {@code true} if the task was started successfully, {@code false} if it was already running or done
-	 * @throws CancelledException When the task cannot be started because it was cancelled (see {@link #isPrevented()})
-	 * @throws RejectedExecutionException When the task cannot be started because the {@link ExecutorService} used for asynchrounous
-	 * execution rejected the task
-	 * @throws NullPointerException When {@code executor} is {@code null}
-	 */
-	public boolean startAsync(ExecutorService executor) throws CancelledException, RejectedExecutionException;
-	/**
-	 * Attempts to start this task synchrounously (on the calling thread). A task can only be
-	 * started once.
-	 * <p>
-	 * If this method returns {@code true}, then the task is guaranteed to be done with all operations
-	 * that are synchronous in the associated {@link TaskAction} after this method returns.<br>
-	 * Use {@link #executeSync()} to immediately handle exceptions thrown by the task
-	 * </p>
-	 * @return {@code true} if the task was started successfully, {@code false} if it was already running or done
-	 * @throws CancelledException When the task cannot be started because it was cancelled (see {@link #isPrevented()})
-	 */
-	public boolean startSync() throws CancelledException;
-	
-	/**
-	 * Attempts to start this task synchrounously (on the calling thread). A task can only be
-	 * started once.
-	 * <p>
-	 * If this method returns {@code true}, then the task is guaranteed to be done with all operations
-	 * that are synchronous in the associated {@link TaskAction} after this method returns.<br>
-	 * Will throw all exceptions thrown by the {@link TaskAction}.
-	 * </p>
-	 * @return {@code true} if the task was started successfully, {@code false} if it was already running or done
-	 * @throws CancelledException When the task cannot be started because it was cancelled (see {@link #isPrevented()})
-	 * @throws Throwable When any {@link Throwable} was thrown by the associated {@link TaskAction}
-	 * @throws RejectedExecutionException When the task cannot be started because the {@link ExecutorService} used for asynchrounous
-	 * execution rejected the task
-	 */
-	public boolean executeSync() throws CancelledException, Throwable;
 	
 	/**
 	 * Attempts to cancel the associated task or blocking action only if it is currently executing.
@@ -513,25 +456,10 @@ public interface Task extends CancelCondition {
 	 */
 	public Task onCompletionAsync(Consumer<Task> action, ExecutorService executor);
 	
-	//STATIC
-	/**
-	 * Can be called from within an action represented by a {@link Task} to fail the task.
-	 * This method throws a {@link TaskFailureRequestException} that will cause the task to fail.
-	 * @param message The message for the exception
-	 * @deprecated Will be added to {@link TaskContext}
-	 */
-	@Deprecated
-	public static void fail(String message) {
-		throw new TaskFailureRequestException(message);
-	}
-	
 	/**
 	 * The {@link ExecutorService} used when registering asynchronous handlers (
 	 * {@link #onSuccessAsync(Runnable)}, {@link #onFailureAsync(Consumer)}, {@link #onFailureAsync(Consumer)}, {@link #onCompletionAsync(Consumer)}
 	 * ) without supplying an executor.
-	 * <p>
-	 * It will also be used for asynchrounous execution of {@link TaskAction}s.
-	 * </p>
 	 * @return The default {@link ExecutorService} for tasks and handlers
 	 */
 	public static ExecutorService defaultExecutor() {

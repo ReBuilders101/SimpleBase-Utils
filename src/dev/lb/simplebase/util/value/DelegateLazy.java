@@ -50,4 +50,9 @@ class DelegateLazy<V, D> implements Lazy<V> {
 		}
 	}
 
+	@Override
+	public boolean isPresent() {
+		return delegate == null;
+	}
+
 }

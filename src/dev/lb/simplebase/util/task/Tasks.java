@@ -2,7 +2,6 @@ package dev.lb.simplebase.util.task;
 
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -70,87 +69,6 @@ public final class Tasks {
 	 */
 	public static Task cancelled(Object payload) {
 		return new CancelledTask(new CancelledException(payload));
-	}
-	
-	/**
-	 * Creates a {@link Task} representing a {@link TaskAction}.
-	 * @param action The action to represent
-	 * @return The {@link Task} that represents the action
-	 * @throws NullPointerException When {@code action} is {@code null}
-	 */
-	public static Task createAction(TaskAction action) {
-		Objects.requireNonNull(action, "'action' parameter must not be null");
-		return new ConcurrentActionTask(action);
-	}
-	
-	/**
-	 * Creates a {@link Task} representing a {@link TaskAction} and 
-	 * starts that task synchronously.<br>
-	 * Equivalent to calling {@link Task#startSync()} on a task produced by
-	 * {@link #createAction(TaskAction)} using the same action.
-	 * <p>
-	 * Because the task is running synchronously, it will be done (completed, cancelled or failed)
-	 * by the time this method returns.
-	 * </p>
-	 * @param action The action to represent
-	 * @return The started and completed {@link Task} that represents the action
-	 * @throws NullPointerException When {@code action} is {@code null}
-	 */
-	public static Task startActionSync(TaskAction action) {
-		Objects.requireNonNull(action, "'action' parameter must not be null");
-		Task t = new ConcurrentActionTask(action);
-		try {
-			t.startSync();
-		} catch (CancelledException e) {
-			throw new RuntimeException("Somehow the task was cancelled before anyone has access to it", e);
-		}
-		return t;
-	}
-	
-	/**
-	 * Creates a {@link Task} representing a {@link TaskAction} and 
-	 * starts that task asynchronously using the {@link Task#defaultExecutor()}.<br>
-	 * Equivalent to calling {@link Task#startAsync()} on a task produced by
-	 * {@link #createAction(TaskAction)} using the same action.
-	 * @param action The action to represent
-	 * @return The started {@link Task} that represents the action
-	 * @throws NullPointerException When {@code action} is {@code null}
-	 * @throws RejectedExecutionException When the task cannot be started because the {@link ExecutorService} used for asynchrounous
-	 * execution rejected the task
-	 */
-	public static Task startActionAsync(TaskAction action) {
-		Objects.requireNonNull(action, "'action' parameter must not be null");
-		Task t = new ConcurrentActionTask(action);
-		try {
-			t.startAsync();
-		} catch (CancelledException e) {
-			throw new RuntimeException("Somehow the task was cancelled before anyone has access to it", e);
-		}
-		return t;
-	}
-	
-	/**
-	 * Creates a {@link Task} representing a {@link TaskAction} and 
-	 * starts that task asynchronously using an {@link ExecutorService}.<br>
-	 * Equivalent to calling {@link Task#startAsync()} on a task produced by
-	 * {@link #createAction(TaskAction)} using the same action.
-	 * @param action The action to represent
-	 * @param executor The {@link ExecutorService} that will run the action
-	 * @return The started {@link Task} that represents the action
-	 * @throws NullPointerException When {@code action} or {@code executor} is {@code null}
-	 * @throws RejectedExecutionException When the task cannot be started because the {@link ExecutorService} used for asynchrounous
-	 * execution rejected the task
-	 */
-	public static Task startActionAsync(TaskAction action, ExecutorService executor) {
-		Objects.requireNonNull(action, "'action' parameter must not be null");
-		Objects.requireNonNull(executor, "'executor' parametesr must not be null");
-		Task t = new ConcurrentActionTask(action);
-		try {
-			t.startAsync(executor);
-		} catch (CancelledException e) {
-			throw new RuntimeException("Somehow the task was cancelled before anyone has access to it", e);
-		}
-		return t;
 	}
 	
 	/**
@@ -274,29 +192,6 @@ public final class Tasks {
 	@Deprecated
 	public static Task succeedAfter(long timeout, TimeUnit unit) {
 		return delay(timeout, unit);
-	}
-	
-	/**
-	 * Creates an starts a {@link Task} that completes after the specified timeout elapses.
-	 * The task can be cancelled by calling {@link Task#cancel()}. It can fail
-	 * with an {@link InterruptedException} when the blocked thread is interrupted.
-	 * <p>
-	 * Because it is implemented using {@link Thread#sleep(long)}, using this task will
-	 * block a entire thread of the {@link ExecutorService} until it completed. It 
-	 * is recommended to use {@link #delay(long, TimeUnit)} instead.
-	 * </p>
-	 * @param timeout The timeout the task taskes to complete 
-	 * @param unit The {@link TimeUnit} for the timeout
-	 * @param executor The {@link ExecutorService} that provides a thread to block for the waiting time
-	 * @return A task that will complete after the timeout elapses
-	 * @throws NullPointerException When {@code unit} or {@code service} is {@code null}
-	 * @deprecated This method will block the executor thread while waiting. Use {@link #delay(long, TimeUnit)} instead.
-	 */
-	@Deprecated
-	public static Task delayExecutor(long timeout, TimeUnit unit, ExecutorService executor) {
-		Objects.requireNonNull(unit, "'unit' parameter must not be null");
-		Objects.requireNonNull(executor, "'executor' parameter must not be null");
-		return startActionAsync((ctx) -> Thread.sleep(unit.toMillis(timeout)), executor);
 	}
 	
 	@Internal

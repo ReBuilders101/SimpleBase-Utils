@@ -78,4 +78,9 @@ class CloseableLazy<T> implements Lazy.Closeable<T> {
 			}
 		}
 	}
+
+	@Override
+	public boolean isPresent() {
+		return supplier == null;
+	}
 }

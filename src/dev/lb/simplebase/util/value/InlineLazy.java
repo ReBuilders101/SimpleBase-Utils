@@ -70,4 +70,9 @@ class InlineLazy<T> implements Lazy.Inline<T> {
 		return initialized;
 	}
 
+	@Override
+	public boolean isPresent() {
+		return supplier == null;
+	}
+
 }

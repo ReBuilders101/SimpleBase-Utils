@@ -48,4 +48,9 @@ class ValueLazy<T> implements Lazy<T> {
 			action.accept(value);
 		}
 	}
+
+	@Override
+	public boolean isPresent() {
+		return supplier == null;
+	}
 }
