@@ -20,7 +20,7 @@ public interface Task extends CancelCondition {
 	 * Returns {@code true} when the task is done running, {@code false} otherwise.
 	 * A task is done when it is in the states {@link State#SUCCESS}, {@link State#CANCELLED}
 	 * or {@link State#FAILED}. A task that was cancelled before it was started is also considered
-	 * done, as soch a task will never change its state again.
+	 * done, as such a task will never change its state or be able to run again.
 	 * @return {@code true} when the task is done running, {@code false} otherwise 
 	 */
 	public boolean isDone();
@@ -182,6 +182,20 @@ public interface Task extends CancelCondition {
 	 */
 	public Task awaitUninterruptibly(long timeout, TimeUnit unit, CancelCondition condition) throws TimeoutException, CancelledException;
 	
+	/**
+	 * Attempts to cancel this {@link Task}.
+	 * @return {@code true} if cancellation was successful and the task stopped running, {@code false} if not
+	 */
+	@Override public default boolean cancel() {
+		return cancel(null);
+	}
+	/**
+	 * Attempts to cancel this {@link Task}.
+	 * @param exceptionPayload A nullable object that will be available on the {@link CancelledException} caused by cancelling the task
+	 * @return {@code true} if cancellation was successful and the task stopped running, {@code false} if not
+	 */
+	@Override public boolean cancel(Object exceptionPayload);
+	
 	//Get value
 	/**
 	 * Checks for any exceptions thrown by the {@link TaskAction} associated with this task, and rethrows that exception.
@@ -244,7 +258,8 @@ public interface Task extends CancelCondition {
 	 */
 	public <E extends Throwable> E getFailure(Class<E> expectedType) throws ClassCastException;
 	/**
-	 * Checks for any exceptions thrown by the {@link TaskAction} associated with this task.
+	 * Checks for any exceptions thrown by the {@link TaskAction} associated with this task,
+	 * or for cancellation of this task.
 	 * If one is present, it is wrapped in an unchecked {@link TaskFailureException} and thrown.
 	 * <p>
 	 * This action will consume the exception: When calling this method twice in succession, the second call will never throw an
@@ -252,8 +267,9 @@ public interface Task extends CancelCondition {
 	 * </p>
 	 * @return This task
 	 * @throws TaskFailureException The {@link TaskFailureException} that wraps the cause of failure, if present
+	 * @throws CancelledException When the task was cancelled
 	 */
-	public Task checkSuccess() throws TaskFailureException;
+	public Task checkSuccess() throws TaskFailureException, CancelledException;
 	
 	//Manual
 	/**
@@ -286,8 +302,6 @@ public interface Task extends CancelCondition {
 	 * </p>
 	 * @return {@code true} if the task was started successfully, {@code false} if it was already running or done
 	 * @throws CancelledException When the task cannot be started because it was cancelled (see {@link #isPrevented()})
-	 * @throws RejectedExecutionException When the task cannot be started because the {@link ExecutorService} used for asynchrounous
-	 * execution rejected the task
 	 */
 	public boolean startSync() throws CancelledException;
 	

@@ -47,22 +47,62 @@ public interface TaskContext {
 	 * The {@link TaskAction} implementation that calls this method should return from the action immediately afterwards.
 	 * The {@link TaskAction} that is passed as a parameter will start running after the timeout has elapsed. It will
 	 * run with the {@link TaskContext} that this method is being called on.
+	 * </p><p>
+	 * If the associated {@link TaskAction} is being executed synchronously, this method may block
+	 * the calling thread for the timeout duration and then continue with the {@code continueAction}.
 	 * </p>
 	 * @param timeout The timeout to wait for 
 	 * @param unit The {@link TimeUnit} for the timeout
 	 * @param continueAction The {@link TaskAction} that will contiue running after the timeout
+	 * @param canCancel If {@code true}, an attempt to cancel the associated task while waiting will start the action before the timeout elapses
 	 * @throws TaskDeferredExecption When the task associated with this context is already deferred by a previous call to this method
 	 * @throws NullPointerException When {@code unit} or {@code continueAction} is {@code null}
 	 */
-	public void setTimeout(long timeout, TimeUnit unit, TaskAction continueAction) throws TaskDeferredExecption;
+	public void setTimeout(long timeout, TimeUnit unit, TaskAction continueAction, boolean canCancel) throws TaskDeferredExecption;
+	
+	/**
+	 * Defers part of the {@link TaskAction} until another task completes.
+	 * <p>
+	 * The {@link TaskAction} implementation that calls this method should return from the action immediately afterwards.
+	 * The {@link TaskAction} that is passed as a parameter will start running after the timeout has elapsed. It will
+	 * run with the {@link TaskContext} that this method is being called on.
+	 * </p><p>
+	 * If the associated {@link TaskAction} is being executed synchronously, this method may block
+	 * the calling thread for the timeout duration and then continue with the {@code continueAction}.
+	 * </p>
+	 * @param taskToWaitFor The task to wait for
+	 * @param continueAction The {@link TaskAction} that will contiue running after the timeout
+	 * @param canCancel If {@code true}, an attempt to cancel the associated task while waiting will start the action before the other task completes
+	 * @throws TaskDeferredExecption When the task associated with this context is already deferred by a previous call to this method
+	 * @throws NullPointerException When {@code unit} or {@code continueAction} is {@code null}
+	 */
+	public void setTimeout(Task taskToWaitFor, TaskAction continueAction, boolean canCancel);
+	
+	/**
+	 * Defers part of the {@link TaskAction} until the {@link TaskCompleter} sends a success signal.
+	 * If the completer sends a failure signal, the {@code continueAction} will never run.
+	 * <p>
+	 * The {@link TaskAction} implementation that calls this method should return from the action immediately afterwards.
+	 * The {@link TaskAction} that is passed as a parameter will start running after the timeout has elapsed. It will
+	 * run with the {@link TaskContext} that this method is being called on.
+	 * </p><p>
+	 * If the associated {@link TaskAction} is being executed synchronously, this method may block
+	 * the calling thread for the timeout duration and then continue with the {@code continueAction}.
+	 * </p>
+	 * @param taskToWaitFor The {@link TaskCompleter} that will send the success signal
+	 * @param continueAction The {@link TaskAction} that will contiue running after the timeout
+	 * @param canCancel If {@code true}, an attempt to cancel the associated task while waiting will start the action before the completer is signalled
+	 * @throws TaskDeferredExecption When the task associated with this context is already deferred by a previous call to this method
+	 * @throws NullPointerException When {@code unit} or {@code continueAction} is {@code null}
+	 */
+	public void setTimeout(TaskCompleter taskToWaitFor, TaskAction continueAction, boolean canCancel);
 	
 	/**
 	 * Fails the current {@link Task} by throwing a {@link TaskFailureRequestException} with the
 	 * error message.
 	 * @param message The message for the exception
+	 * @throws TaskDeferredExecption When calling this method after any {@code setTimeout(..)} method
 	 * @throws TaskFailureRequestException Always
 	 */
-	public default void fail(String message) {
-		throw new TaskFailureRequestException(message);
-	}
+	public void fail(String message) throws TaskFailureRequestException, TaskDeferredExecption;
 }

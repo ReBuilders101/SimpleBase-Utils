@@ -4,11 +4,13 @@ import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import dev.lb.simplebase.util.annotation.Internal;
 import dev.lb.simplebase.util.annotation.StaticType;
 import dev.lb.simplebase.util.task.Task.State;
+import dev.lb.simplebase.util.timer.GlobalTimer;
 
 /**
  * Contains methods fro creating and converting {@link Task}s
@@ -78,7 +80,7 @@ public final class Tasks {
 	 */
 	public static Task createAction(TaskAction action) {
 		Objects.requireNonNull(action, "'action' parameter must not be null");
-		throw new UnsupportedOperationException("TODO");
+		return new ConcurrentActionTask(action);
 	}
 	
 	/**
@@ -96,7 +98,13 @@ public final class Tasks {
 	 */
 	public static Task startActionSync(TaskAction action) {
 		Objects.requireNonNull(action, "'action' parameter must not be null");
-		throw new UnsupportedOperationException("TODO");
+		Task t = new ConcurrentActionTask(action);
+		try {
+			t.startSync();
+		} catch (CancelledException e) {
+			throw new RuntimeException("Somehow the task was cancelled before anyone has access to it", e);
+		}
+		return t;
 	}
 	
 	/**
@@ -107,10 +115,18 @@ public final class Tasks {
 	 * @param action The action to represent
 	 * @return The started {@link Task} that represents the action
 	 * @throws NullPointerException When {@code action} is {@code null}
+	 * @throws RejectedExecutionException When the task cannot be started because the {@link ExecutorService} used for asynchrounous
+	 * execution rejected the task
 	 */
 	public static Task startActionAsync(TaskAction action) {
 		Objects.requireNonNull(action, "'action' parameter must not be null");
-		throw new UnsupportedOperationException("TODO");
+		Task t = new ConcurrentActionTask(action);
+		try {
+			t.startAsync();
+		} catch (CancelledException e) {
+			throw new RuntimeException("Somehow the task was cancelled before anyone has access to it", e);
+		}
+		return t;
 	}
 	
 	/**
@@ -122,11 +138,19 @@ public final class Tasks {
 	 * @param executor The {@link ExecutorService} that will run the action
 	 * @return The started {@link Task} that represents the action
 	 * @throws NullPointerException When {@code action} or {@code executor} is {@code null}
+	 * @throws RejectedExecutionException When the task cannot be started because the {@link ExecutorService} used for asynchrounous
+	 * execution rejected the task
 	 */
 	public static Task startActionAsync(TaskAction action, ExecutorService executor) {
 		Objects.requireNonNull(action, "'action' parameter must not be null");
-		Objects.requireNonNull(executor, "'executor' parameter must not be null");
-		throw new UnsupportedOperationException("TODO");
+		Objects.requireNonNull(executor, "'executor' parametesr must not be null");
+		Task t = new ConcurrentActionTask(action);
+		try {
+			t.startAsync(executor);
+		} catch (CancelledException e) {
+			throw new RuntimeException("Somehow the task was cancelled before anyone has access to it", e);
+		}
+		return t;
 	}
 	
 	/**
@@ -138,7 +162,7 @@ public final class Tasks {
 	 * </p>
 	 * @param completionSource The {@link TaskCompleter} that will complete the task
 	 * @return A {@link Task} that will complete when the completion source is signalled
-	 * @throws NullPointerException When {@code lock} or {@code waitingCondition} is {@code null}
+	 * @throws NullPointerException When {@code completionSource} is {@code null}
 	 * @throws IllegalArgumentException When the {@code completionSource} was already used to construct another task
 	 */
 	public static Task startBlocking(TaskCompleter completionSource) {
@@ -148,26 +172,108 @@ public final class Tasks {
 	
 	/**
 	 * Creates an starts a {@link Task} that completes after the specified timeout elapses.
-	 * The task can be cancelled by calling {@link Task#cancel()}. It can (rarely) fail
-	 * because the global timer thread is forcibly shut down using an interrrupt, without allowing all tasks
-	 * to complete normally.
+	 * The task can be cancelled by calling {@link Task#cancel()}.
 	 * <p>
 	 * Unlike most other {@link Task} implementations, the returned task will use a global timer
 	 * thread to manage the waiting time. This avoids using an entire thread from an {@link ExecutionException}
 	 * only to block that thread with {@link Thread#sleep(long)}.
-	 * </p><p>
-	 * <b>Caution:</b> A synchronous completion/cancellation handler for this task will run on the 
-	 * global timer thread. blocking this thread prevents other timed tasks to be executed properly.
-	 * It is recommended to only use asynchronous handlers with this task.
 	 * </p>
 	 * @param timeout The timeout the task taskes to complete 
 	 * @param unit The {@link TimeUnit} for the timeout
 	 * @return A task that will complete after the timeout elapses
 	 * @throws NullPointerException When {@code unit} is {@code null}
+	 * @throws RejectedExecutionException When the action that completes the {@link Task} after the timeout elapses could not be scheduled
+	 * on the global timer thread pool using {@link GlobalTimer#scheduleOnce(Runnable, long, TimeUnit)}
 	 */
 	public static Task delay(long timeout, TimeUnit unit) {
 		Objects.requireNonNull(unit, "'unit' parameter must not be null");
-		throw new UnsupportedOperationException("TODO");
+		final TaskCompleter completer = TaskCompleter.create();
+		final Task delayed = new ConditionWaiterTask(completer);
+		GlobalTimer.scheduleOnce(completer::signalSuccess, timeout, unit);
+		return delayed;
+	}
+	
+	/**
+	 * Creates and starts a {@link Task} that will wait indefinitely, unless cancelled by invocation
+	 * of the returned tasks {@link Task#cancel()} method (and the other {@code cancel...(...)} methods).
+	 * <p>
+	 * It should be considered whether using an {@link Awaiter} diectly is more appropiate.
+	 * </p>
+	 * @return A task that never completes on its own, but can be cancelled
+	 */
+	public static Task waiting() {
+		final TaskCompleter completer = TaskCompleter.create(); //Never use the completer
+		final Task delayed = new ConditionWaiterTask(completer);
+		return delayed;
+	}
+	
+	/**
+	 * Creates and starts a {@link Task} that will be cancelled after the specified timeout elapses.
+	 * <p>
+	 * Unlike most other {@link Task} implementations, the returned task will use a global timer
+	 * thread to manage the waiting time. This avoids using an entire thread from an {@link ExecutionException}
+	 * only to block that thread with {@link Thread#sleep(long)}.
+	 * </p>
+	 * @param cancellationPayload The nullable object that will be included with the {@link CancelledException}.
+	 * @param timeout The timeout the task taskes to complete 
+	 * @param unit The {@link TimeUnit} for the timeout
+	 * @return A task that will be cancelled after the timeout elapses
+	 * @throws NullPointerException When {@code unit} is {@code null}
+	 * @throws RejectedExecutionException When the action that completes the {@link Task} after the timeout elapses could not be scheduled
+	 * on the global timer thread pool using {@link GlobalTimer#scheduleOnce(Runnable, long, TimeUnit)}
+	 */
+	public static Task cancelAfter(Object cancellationPayload, long timeout, TimeUnit unit) {
+		Objects.requireNonNull(unit, "'unit' parameter must not be null");
+		final TaskCompleter completer = TaskCompleter.create(); //Never use the completer
+		final Task delayed = new ConditionWaiterTask(completer);
+		GlobalTimer.scheduleOnce(() -> delayed.cancel(cancellationPayload), timeout, unit);
+		return delayed;
+	}
+	
+	/**
+	 * Creates and starts a {@link Task} that will fail after the specified timeout elapses.
+	 * <p>
+	 * Unlike most other {@link Task} implementations, the returned task will use a global timer
+	 * thread to manage the waiting time. This avoids using an entire thread from an {@link ExecutionException}
+	 * only to block that thread with {@link Thread#sleep(long)}.
+	 * </p>
+	 * @param failureReason The {@link Throwable} that caused the action to fail
+	 * @param timeout The timeout the task taskes to complete 
+	 * @param unit The {@link TimeUnit} for the timeout
+	 * @return A task that will fail after the timeout elapses
+	 * @throws NullPointerException When {@code failureReason} or {@code unit} is {@code null}
+	 * @throws RejectedExecutionException When the action that completes the {@link Task} after the timeout elapses could not be scheduled
+	 * on the global timer thread pool using {@link GlobalTimer#scheduleOnce(Runnable, long, TimeUnit)}
+	 */
+	public static Task failAfter(Throwable failureReason, long timeout, TimeUnit unit) {
+		Objects.requireNonNull(failureReason, "'failureReason' parameter must not be null");
+		Objects.requireNonNull(unit, "'unit' parameter must not be null");
+		final TaskCompleter completer = TaskCompleter.create(); //Never use the completer
+		final Task delayed = new ConditionWaiterTask(completer);
+		GlobalTimer.scheduleOnce(() -> completer.signalFailure(failureReason), timeout, unit);
+		return delayed;
+	}
+	
+	/**
+	 * <p>
+	 * Creates an starts a {@link Task} that completes after the specified timeout elapses.
+	 * The task can be cancelled by calling {@link Task#cancel()}. It can (rarely) fail
+	 * because the global timer thread is forcibly shut down using an interrrupt, without allowing all tasks
+	 * to complete normally.
+	 * </p><p>
+	 * Unlike most other {@link Task} implementations, the returned task will use a global timer
+	 * thread to manage the waiting time. This avoids using an entire thread from an {@link ExecutionException}
+	 * only to block that thread with {@link Thread#sleep(long)}.
+	 * </p>
+	 * @param timeout The timeout the task taskes to complete 
+	 * @param unit The {@link TimeUnit} for the timeout
+	 * @return A task that will complete after the timeout elapses
+	 * @throws NullPointerException When {@code unit} is {@code null}
+	 * @deprecated Alias for {@link #delay(long, TimeUnit)}.
+	 */
+	@Deprecated
+	public static Task succeedAfter(long timeout, TimeUnit unit) {
+		return delay(timeout, unit);
 	}
 	
 	/**

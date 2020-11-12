@@ -50,6 +50,13 @@ public interface Lazy<T> {
 	public void ifPresent(Consumer<? super T> action);
 	
 	/**
+	 * Will be {@code true} if the value of this lazy has been stored by calling the supplier,
+	 * will be {@code false} if no value is stored (yet).
+	 * @return {@code true} if the value of the lazy has been created, {@code false} otherwise
+	 */
+	public boolean isPresent();
+	
+	/**
 	 * Creates a new {@link Lazy} that will retrieve its value from a {@link Supplier}.
 	 * <br>
 	 * The supplier will only ever be called once.

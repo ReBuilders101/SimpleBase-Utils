@@ -11,6 +11,11 @@ public interface CancelCondition {
 
 	/**
 	 * Attempts to cancel the associated task or blocking action.
+	 * <p>
+	 * Cancellation is considered successful when all handlers registered with {@link #onCancelled(Consumer)}, {@link #onCancelledAsync(Consumer)}
+	 * and {@link #onCancelledAsync(Consumer, ExecutorService)} could be executed and have not been executed already. It does not
+	 * actually report whether the associated action was cancelled successfully. 
+	 * </p>
 	 * @return {@code true} if cancellation was successful, {@code false} if not
 	 */
 	public default boolean cancel() {
@@ -19,6 +24,11 @@ public interface CancelCondition {
 	
 	/**
 	 * Attempts to cancel the associated task or blocking action.
+	 * <p>
+	 * Cancellation is considered successful when all handlers registered with {@link #onCancelled(Consumer)}, {@link #onCancelledAsync(Consumer)}
+	 * and {@link #onCancelledAsync(Consumer, ExecutorService)} could be executed and have not been executed already. It does not
+	 * actually report whether the associated action was cancelled successfully. 
+	 * </p>
 	 * @param exceptionPayload A nullable object that will be available on the {@link CancelledException} caused by cancelling the task
 	 * @return {@code true} if cancellation was successful, {@code false} if not
 	 */
@@ -83,7 +93,7 @@ public interface CancelCondition {
 	 * @throws NullPointerException When {@code action} or {@code executor} is {@code null}
 	 */
 	public CancelCondition onCancelledAsync(Consumer<CancelledException> action, ExecutorService executor);
-	
+
 	/**
 	 * Creates a standalone {@link CancelCondition} not directly associated with any task or action.
 	 * <p>
