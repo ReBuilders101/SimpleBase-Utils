@@ -6,11 +6,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 
-abstract class BlockingTask implements Task {
+abstract class BlockingTask<T> implements TaskOf<T> {
 
 	protected final Awaiter awaiter;
 	protected final SubscriptionHandler<CancelledException> onCancelled;
-	protected final SubscriptionHandler<Void> onSuccess;
+	protected final SubscriptionHandler<T> onSuccess;
 	protected final SubscriptionHandler<Throwable> onFailure;
 	protected final SubscriptionHandler<Task> onCompletion;
 	
@@ -23,19 +23,19 @@ abstract class BlockingTask implements Task {
 	}
 	
 	@Override
-	public Task await() throws InterruptedException {
+	public TaskOf<T> await() throws InterruptedException {
 		awaiter.await(Awaiter.MASTER_PERMIT);
 		return this;
 	}
 
 	@Override
-	public Task awaitUninterruptibly() {
+	public TaskOf<T> awaitUninterruptibly() {
 		awaiter.awaitUninterruptibly(Awaiter.MASTER_PERMIT);
 		return this;
 	}
 	
 	@Override
-	public Task await(long timeout, TimeUnit unit) throws InterruptedException, TimeoutException {
+	public TaskOf<T> await(long timeout, TimeUnit unit) throws InterruptedException, TimeoutException {
 		Objects.requireNonNull(unit, "'unit' parameter must not be null");
 
 		awaiter.await(Awaiter.MASTER_PERMIT, timeout, unit);
@@ -43,7 +43,7 @@ abstract class BlockingTask implements Task {
 	}
 
 	@Override
-	public Task awaitUninterruptibly(long timeout, TimeUnit unit) throws TimeoutException {
+	public TaskOf<T> awaitUninterruptibly(long timeout, TimeUnit unit) throws TimeoutException {
 		Objects.requireNonNull(unit, "'unit' parameter must not be null");
 
 		awaiter.awaitUninterruptibly(Awaiter.MASTER_PERMIT, timeout, unit);
@@ -51,7 +51,7 @@ abstract class BlockingTask implements Task {
 	}
 
 	@Override
-	public Task await(CancelCondition condition) throws InterruptedException, CancelledException {
+	public TaskOf<T> await(CancelCondition condition) throws InterruptedException, CancelledException {
 		//cannot use null as that is the master permit
 		Objects.requireNonNull(condition, "'condition' parameter must not be null");
 
@@ -66,7 +66,7 @@ abstract class BlockingTask implements Task {
 	}
 
 	@Override
-	public Task awaitUninterruptibly(CancelCondition condition) throws CancelledException {
+	public TaskOf<T> awaitUninterruptibly(CancelCondition condition) throws CancelledException {
 		//cannot use null as that is the master permit
 		Objects.requireNonNull(condition, "'condition' parameter must not be null");
 
@@ -79,7 +79,7 @@ abstract class BlockingTask implements Task {
 	}
 
 	@Override
-	public Task await(long timeout, TimeUnit unit, CancelCondition condition) throws InterruptedException, TimeoutException, CancelledException {
+	public TaskOf<T> await(long timeout, TimeUnit unit, CancelCondition condition) throws InterruptedException, TimeoutException, CancelledException {
 		//cannot use null as that is the master permit
 		Objects.requireNonNull(condition, "'condition' parameter must not be null");
 		Objects.requireNonNull(unit, "'unit' parameter must not be null");
@@ -93,7 +93,7 @@ abstract class BlockingTask implements Task {
 	}
 
 	@Override
-	public Task awaitUninterruptibly(long timeout, TimeUnit unit, CancelCondition condition) throws TimeoutException, CancelledException {
+	public TaskOf<T> awaitUninterruptibly(long timeout, TimeUnit unit, CancelCondition condition) throws TimeoutException, CancelledException {
 		//cannot use null as that is the master permit
 		Objects.requireNonNull(condition, "'condition' parameter must not be null");
 		Objects.requireNonNull(unit, "'unit' parameter must not be null");
@@ -108,50 +108,63 @@ abstract class BlockingTask implements Task {
 	
 
 	@Override
-	public Task onCancelled(Consumer<CancelledException> action) {
+	public TaskOf<T> onCancelled(Consumer<CancelledException> action) {
 		onCancelled.subscribe(action);
 		return this;
 	}
 
 	@Override
-	public Task onCancelledAsync(Consumer<CancelledException> action, ExecutorService executor) {
+	public TaskOf<T> onCancelledAsync(Consumer<CancelledException> action, ExecutorService executor) {
 		onCancelled.subscribeAsync(action, executor);
 		return this;
 	}
 
 	@Override
-	public Task onSuccess(Runnable action) {
+	public TaskOf<T> onSuccess(Runnable action) {
 		onSuccess.subscribeRunnable(action);
 		return this;
 	}
 
 	@Override
-	public Task onSuccessAsync(Runnable action, ExecutorService executor) {
+	public TaskOf<T> onSuccessAsync(Runnable action, ExecutorService executor) {
 		onSuccess.subscribeRunnableAsync(action, executor);
 		return this;
 	}
 
 	@Override
-	public Task onFailure(Consumer<Throwable> action) {
+	public TaskOf<T> onFailure(Consumer<Throwable> action) {
 		onFailure.subscribe(action);
 		return this;
 	}
 
 	@Override
-	public Task onFailureAsync(Consumer<Throwable> action, ExecutorService executor) {
+	public TaskOf<T> onFailureAsync(Consumer<Throwable> action, ExecutorService executor) {
 		onFailure.subscribeAsync(action, executor);
 		return this;
 	}
 
 	@Override
-	public Task onCompletion(Consumer<Task> action) {
+	public TaskOf<T> onCompletion(Consumer<Task> action) {
 		onCompletion.subscribe(action);
 		return this;
 	}
 
 	@Override
-	public Task onCompletionAsync(Consumer<Task> action, ExecutorService executor) {
+	public TaskOf<T> onCompletionAsync(Consumer<Task> action, ExecutorService executor) {
 		onCompletion.subscribeAsync(action, executor);
+		return this;
+	}
+	
+
+	@Override
+	public TaskOf<T> onSuccess(Consumer<T> action) {
+		onSuccess.subscribe(action);
+		return this;
+	}
+
+	@Override
+	public TaskOf<T> onSuccessAsync(Consumer<T> action, ExecutorService executor) {
+		onSuccess.subscribeAsync(action, executor);
 		return this;
 	}
 }

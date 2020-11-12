@@ -85,7 +85,25 @@ public final class Tasks {
 	 */
 	public static Task startBlocking(TaskCompleter completionSource) {
 		Objects.requireNonNull(completionSource, "'completionSource' parameter must not be null");
-		return new ConditionWaiterTask(completionSource);
+		return new ConditionWaiterTask<>(completionSource.inner());
+	}
+	
+	/**
+	 * Creates a {@link TaskOf} that will wait until a {@link TaskCompleterOf} is signalled.
+	 * <p>
+	 * <b>Important:</b> The condition object should be created explicitly for this task, as
+	 * user actions done on the task may also signal the condition (e.g. a call to {@link TaskOf#cancel()}
+	 * will signal the condition to resume waiting threads).
+	 * </p>
+	 * @param <T> The result type of the task
+	 * @param completionSource The {@link TaskCompleterOf} that will complete the task
+	 * @return A {@link TaskOf} that will complete when the completion source is signalled
+	 * @throws NullPointerException When {@code completionSource} is {@code null}
+	 * @throws IllegalArgumentException When the {@code completionSource} was already used to construct another task
+	 */
+	public static <T> TaskOf<T> startBlockingOf(TaskCompleterOf<T> completionSource) {
+		Objects.requireNonNull(completionSource, "'completionSource' parameter must not be null");
+		return new ConditionWaiterTask<>(completionSource);
 	}
 	
 	/**
@@ -105,9 +123,9 @@ public final class Tasks {
 	 */
 	public static Task delay(long timeout, TimeUnit unit) {
 		Objects.requireNonNull(unit, "'unit' parameter must not be null");
-		final TaskCompleter completer = TaskCompleter.create();
-		final Task delayed = new ConditionWaiterTask(completer);
-		GlobalTimer.scheduleOnce(completer::signalSuccess, timeout, unit);
+		final TaskCompleterOf<Void> completer = TaskCompleterOf.create();
+		final Task delayed = new ConditionWaiterTask<>(completer);
+		GlobalTimer.scheduleOnce(() -> completer.signalSuccess(null), timeout, unit);
 		return delayed;
 	}
 	
@@ -120,8 +138,8 @@ public final class Tasks {
 	 * @return A task that never completes on its own, but can be cancelled
 	 */
 	public static Task waiting() {
-		final TaskCompleter completer = TaskCompleter.create(); //Never use the completer
-		final Task delayed = new ConditionWaiterTask(completer);
+		final TaskCompleterOf<Void> completer = TaskCompleterOf.create(); //Never use the completer
+		final Task delayed = new ConditionWaiterTask<>(completer);
 		return delayed;
 	}
 	
@@ -142,8 +160,8 @@ public final class Tasks {
 	 */
 	public static Task cancelAfter(Object cancellationPayload, long timeout, TimeUnit unit) {
 		Objects.requireNonNull(unit, "'unit' parameter must not be null");
-		final TaskCompleter completer = TaskCompleter.create(); //Never use the completer
-		final Task delayed = new ConditionWaiterTask(completer);
+		final TaskCompleterOf<Void> completer = TaskCompleterOf.create(); //Never use the completer
+		final Task delayed = new ConditionWaiterTask<>(completer);
 		GlobalTimer.scheduleOnce(() -> delayed.cancel(cancellationPayload), timeout, unit);
 		return delayed;
 	}
@@ -166,8 +184,8 @@ public final class Tasks {
 	public static Task failAfter(Throwable failureReason, long timeout, TimeUnit unit) {
 		Objects.requireNonNull(failureReason, "'failureReason' parameter must not be null");
 		Objects.requireNonNull(unit, "'unit' parameter must not be null");
-		final TaskCompleter completer = TaskCompleter.create(); //Never use the completer
-		final Task delayed = new ConditionWaiterTask(completer);
+		final TaskCompleterOf<Void> completer = TaskCompleterOf.create(); //Never use the completer
+		final Task delayed = new ConditionWaiterTask<>(completer);
 		GlobalTimer.scheduleOnce(() -> completer.signalFailure(failureReason), timeout, unit);
 		return delayed;
 	}

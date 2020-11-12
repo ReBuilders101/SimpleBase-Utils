@@ -1,15 +1,17 @@
 package dev.lb.simplebase.util.task;
 
 import java.util.ConcurrentModificationException;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import dev.lb.simplebase.util.annotation.Internal;
 
 @Internal
-class ConditionWaiterTask extends BlockingTask {
+class ConditionWaiterTask<T> extends BlockingTask<T> {
 
 	private volatile CancelledException taskCancellationCause;
 	private volatile Throwable thrownException;
+	private volatile T result;
 	private final AtomicBoolean consumed;
 	private final AtomicInteger state;
 	/*
@@ -35,7 +37,7 @@ class ConditionWaiterTask extends BlockingTask {
 	private static final State[] STATES = {null, State.RUNNING, State.CANCELLED, State.CANCELLED, State.SUCCESS, State.SUCCESS,
 			null, null, State.FAILED, State.FAILED};
 	
-	ConditionWaiterTask(TaskCompleter source) {
+	ConditionWaiterTask(TaskCompleterOf<T> source) {
 		super();
 		setupSource(source);
 		
@@ -44,18 +46,20 @@ class ConditionWaiterTask extends BlockingTask {
 		
 		this.taskCancellationCause = null;
 		this.thrownException = null;
+		this.result = null;
 	}
 	
-	private void setupSource(TaskCompleter tcs) throws IllegalArgumentException {
+	private void setupSource(TaskCompleterOf<T> tcs) throws IllegalArgumentException {
 		tcs.setup(this::succeed, this::fail);
 	}
 
-	private boolean succeed() {
+	private boolean succeed(T value) {
 		//If not waiting, someone is currently completing or completed already
 		if(!state.compareAndSet(WAITING, SUCCEEDING)) {
 			return false;
 		}
 		
+		this.result = value;
 		awaiter.signalAll(Awaiter.MASTER_PERMIT);
 
 		//Now the threads are awake and the cause is initialized: no longer unstable
@@ -159,7 +163,7 @@ class ConditionWaiterTask extends BlockingTask {
 	}
 
 	@Override
-	public Task checkFailure() throws Throwable {
+	public TaskOf<T> checkFailure() throws Throwable {
 		//Not failed at all
 		if((state.get() & FAILED_MASK) != 0) {
 			return this;
@@ -178,7 +182,7 @@ class ConditionWaiterTask extends BlockingTask {
 
 	@Override
 	@SuppressWarnings("unchecked")
-	public <E extends Throwable> Task checkFailure(Class<E> expectedType) throws E {
+	public <E extends Throwable> TaskOf<T> checkFailure(Class<E> expectedType) throws E {
 		//Not failed at all
 		if((state.get() & FAILED_MASK) != 0) {
 			return this;
@@ -213,7 +217,7 @@ class ConditionWaiterTask extends BlockingTask {
 	}
 
 	@Override
-	public Task checkSuccess() throws TaskFailureException {
+	public TaskOf<T> checkSuccess() throws TaskFailureException {
 		//Not failed at all
 		if((state.get() & FAILED_MASK) != 0) {
 			return this;
@@ -243,6 +247,23 @@ class ConditionWaiterTask extends BlockingTask {
 	@Override
 	public CancelledException getCancellationException() {
 		return taskCancellationCause; //Just read - it's either there or not
+	}
+
+	@Override
+	public Optional<T> getFinishedResult() {
+		if((state.get() & SUCCESS_MASK) != 0) {
+			return null;
+		}
+		//Spin-wait until stable
+		while((state.get() & VALID_MASK) == 0) {
+			Thread.onSpinWait();
+		}
+		return Optional.ofNullable(result);
+	}
+
+	@Override
+	public T getResult() {
+		return result;
 	}
 
 }
