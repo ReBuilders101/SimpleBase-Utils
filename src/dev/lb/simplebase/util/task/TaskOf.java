@@ -1,10 +1,12 @@
 package dev.lb.simplebase.util.task;
 
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * Represents a potentially asynchrounous action or other blocking operation with a result.
@@ -346,4 +348,26 @@ public interface TaskOf<T> extends Task {
 	 * @return The result of this task if the computation was successful, {@code null} otherwise
 	 */
 	public T getResult();
+	
+	
+	/**
+	 * Creates a view of this task that reports a different return type.
+	 * <p>
+	 * All methods called on the returned task will be directly delagated to this task, except thoes methods that
+	 * retrieve the result value of the task. For those methods (e.g. {@link #getFinishedResult()}, the
+	 * handlers registered with {@link #onSuccess(Consumer)}, etc.) the result of this task will be retrieved, 
+	 * transformed with the map function and then presented as the result of the view.
+	 * </p><p>
+	 * The map function should be side-effect freee as mit might be called more than once.
+	 * </p>
+	 * @param <R> The result type of the view
+	 * @param mapFunction The {@link Function} that maps the result of this task to the result of the view task
+	 * @return A {@link TaskOf} that is a view of this task with a different result type
+	 * @throws NullPointerException When {@code mapFunction} is {@code null}
+	 */
+	public default <R> TaskOf<R> map(Function<T, R> mapFunction) {
+		Objects.requireNonNull(mapFunction, "'mapFunction' parameter must not be null");
+		return new MappedTask<>(this, mapFunction);
+	}
+	
 }
