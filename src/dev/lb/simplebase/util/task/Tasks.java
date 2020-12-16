@@ -1,11 +1,15 @@
 package dev.lb.simplebase.util.task;
 
 import java.util.Objects;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Function;
+
 import dev.lb.simplebase.util.annotation.Internal;
 import dev.lb.simplebase.util.annotation.StaticType;
 import dev.lb.simplebase.util.task.Task.State;
@@ -107,6 +111,89 @@ public final class Tasks {
 	public static <T> TaskOf<T> startBlocking(TaskCompleterOf<T> completionSource) {
 		Objects.requireNonNull(completionSource, "'completionSource' parameter must not be null");
 		return new ConditionWaiterTask<>(completionSource);
+	}
+	
+	/**
+	 * Creates a new {@link Task} that contains the result of another task with a {@link Function} applied to it.
+	 * <p>
+	 * If the inner task succeeds, the returned task will succeed with the processed result.<br>
+	 * If the inner task fails with an exception, the returned task will fail with the same exception (same {@link Throwable} instance).<br>
+	 * If the inner task is cancelled, the returned task will be cancelled with the same payload (but a different {@link CancellationException}).<br>
+	 * </p><p>
+	 * If the {@link Function} throws an unchecked exception, the outer task will fail with an {@link ExecutionException}
+	 * wrapping that unchecked exception, even if the inner task succeeded.
+	 * </p><p>
+	 * The chained operation runs on the thread that completes the inner task.
+	 * </p>
+	 * @param <I> The result type of the inner task
+	 * @param <V> The result type of the outer task
+	 * @param inner The inner task that supplies the result for the function
+	 * @param operation A {@link Function} that maps the inner result to the outer result
+	 * @return A {@link Task} that waits for the inner task to finish and then applies a function to the result.
+	 */
+	public static <I, V> TaskOf<V> chain(TaskOf<I> inner, Function<? super I, ? extends V> operation) {
+		TaskCompleterOf<V> tco = TaskCompleterOf.create();
+		TaskOf<V> resultTask = Tasks.startBlocking(tco);
+		inner.onSuccess(value -> {
+			try {
+				tco.signalSuccess(operation.apply(value));
+			} catch (Throwable e) {
+				tco.signalFailure(new ExecutionException(e));
+			}
+		});
+		inner.onFailure(thrbl -> tco.signalFailure(thrbl));
+		inner.onCancelled(canex -> resultTask.cancel(canex.getPayload()));
+		return resultTask;
+	}
+	
+	/**
+	 * Creates a new {@link Task} that contains the result of another task with a {@link Function} applied to it.
+	 * <p>
+	 * If the inner task succeeds, the returned task will succeed with the processed result.<br>
+	 * If the inner task fails with an exception, the returned task will fail with the same exception (same {@link Throwable} instance).<br>
+	 * If the inner task is cancelled, the returned task will be cancelled with the same payload (but a different {@link CancellationException}).<br>
+	 * </p><p>
+	 * If the {@link Function} throws an unchecked exception, the outer task will fail with an {@link ExecutionException}
+	 * wrapping that unchecked exception, even if the inner task succeeded.
+	 * </p><p>
+	 * The chained operation runs on a thread in the {@link Task#defaultExecutor()} thread pool.
+	 * </p>
+	 * @param <I> The result type of the inner task
+	 * @param <V> The result type of the outer task
+	 * @param inner The inner task that supplies the result for the function
+	 * @param operation A {@link Function} that maps the inner result to the outer result
+	 * @return A {@link Task} that waits for the inner task to finish and then applies a function to the result.
+	 */
+	public static <I, V> TaskOf<V> chainAsync(TaskOf<I> inner, Function<? super I, ? extends V> operation) {
+		return chainAsync(inner, operation, Task.defaultExecutor());
+	}
+	
+	/**
+	 * Creates a new {@link Task} that contains the result of another task with a {@link Function} applied to it.
+	 * <p>
+	 * If the inner task succeeds, the returned task will succeed with the processed result.<br>
+	 * If the inner task fails with an exception, the returned task will fail with the same exception (same {@link Throwable} instance).<br>
+	 * If the inner task is cancelled, the returned task will be cancelled with the same payload (but a different {@link CancellationException}).<br>
+	 * </p><p>
+	 * If the {@link Function} throws an unchecked exception, the outer task will fail with an {@link ExecutionException}
+	 * wrapping that unchecked exception, even if the inner task succeeded.
+	 * </p><p>
+	 * The chained operation runs on a thread in the {@code executor}s thread pool
+	 * </p>
+	 * @param <I> The result type of the inner task
+	 * @param <V> The result type of the outer task
+	 * @param inner The inner task that supplies the result for the function
+	 * @param operation A {@link Function} that maps the inner result to the outer result
+	 * @param executor The {@link ExecutorService} that should run the operation
+	 * @return A {@link Task} that waits for the inner task to finish and then applies a function to the result.
+	 */
+	public static <I, V> TaskOf<V> chainAsync(TaskOf<I> inner, Function<? super I, ? extends V> operation, ExecutorService executor) {
+		TaskCompleterOf<V> tco = TaskCompleterOf.create();
+		TaskOf<V> resultTask = Tasks.startBlocking(tco);
+		inner.onSuccessAsync(value -> tco.signalSuccess(operation.apply(value)), executor);
+		inner.onFailureAsync(thrbl -> tco.signalFailure(thrbl), executor);
+		inner.onCancelledAsync(canex -> resultTask.cancel(canex.getPayload()), executor);
+		return resultTask;
 	}
 	
 	/**
