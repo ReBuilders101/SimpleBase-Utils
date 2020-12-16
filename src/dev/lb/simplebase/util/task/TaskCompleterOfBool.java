@@ -4,15 +4,15 @@ import java.util.ConcurrentModificationException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 
+import dev.lb.simplebase.util.function.BooleanUnaryOperator;
 import dev.lb.simplebase.util.task.Task.State;
 
 /**
  * Provides methods to complete or fail a blocking task.
- * @param <T> The result type of the {@link TaskOf}
  */
-public class TaskCompleterOf<T> {
+public class TaskCompleterOfBool {
 
-	private volatile Predicate<T> successComplete;
+	private volatile BooleanUnaryOperator successComplete;
 	private volatile Predicate<Throwable> failComplete;
 	
 	private final AtomicInteger state;
@@ -23,7 +23,7 @@ public class TaskCompleterOf<T> {
 	/**
 	 * Creates a {@link TaskCompleter} that is not associated with any task
 	 */
-	public TaskCompleterOf() {
+	public TaskCompleterOfBool() {
 		this.state = new AtomicInteger(UNSET);
 		this.successComplete = null;
 		this.failComplete = null;
@@ -36,14 +36,14 @@ public class TaskCompleterOf<T> {
 	 * @return {@code true} if the task has switched to {@link State#SUCCESS}, {@code false} if not
 	 * @throws IllegalStateException When the completer is not associated with any task
 	 */
-	public boolean signalSuccess(T returnValue) {
+	public boolean signalSuccess(boolean returnValue) {
 		if(state.get() == UNSET) {
 			throw new IllegalStateException("TaskCompletionSource is not set up with a task");
 		} else {
 			while(state.get() != SET) {
 				Thread.onSpinWait();
 			}
-			return successComplete.test(returnValue);
+			return successComplete.apply(returnValue);
 		}
 	}
 	
@@ -65,7 +65,7 @@ public class TaskCompleterOf<T> {
 		}
 	}
 	
-	void setup(/*notnull*/Predicate<T> success, /*notnull*/Predicate<Throwable> fail) {
+	void setup(/*notnull*/BooleanUnaryOperator success, /*notnull*/Predicate<Throwable> fail) {
 		if(!state.compareAndSet(UNSET, SETTING)) {
 			throw new IllegalArgumentException("TaskCompletionSource is already in use"); //Yes, Illegal arg not state
 		}
@@ -80,18 +80,9 @@ public class TaskCompleterOf<T> {
 	
 	/**
 	 * Creates a {@link TaskCompleter} that is not associated with any task
-	 * @param <T> The result type of the {@link TaskOf} that will be used
-	 * @return A new {@link TaskCompleterOf}
+	 * @return A new {@link TaskCompleter}
 	 */
-	public static <T> TaskCompleterOf<T> create() {
-		return new TaskCompleterOf<>();
-	}
-	
-	/**
-	 * Equivalent to {@link TaskCompleterOfBool#create()}.
-	 * @return A new {@link TaskCompleterOfBool}
-	 */
-	public static TaskCompleterOfBool createBool() {
-		return TaskCompleterOfBool.create();
+	public static TaskCompleterOfBool create() {
+		return new TaskCompleterOfBool();
 	}
 }
