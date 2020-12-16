@@ -248,7 +248,7 @@ public final class PrimitiveTasks {
 	 * @throws RejectedExecutionException When the action that completes the {@link Task} after the timeout elapses could not be scheduled
 	 * on the global timer thread pool using {@link GlobalTimer#scheduleOnce(Runnable, long, TimeUnit)}
 	 */
-	public static TaskOfBool cancelAfter(Object cancellationPayload, long timeout, TimeUnit unit) {
+	public static TaskOfBool cancelAfterBool(Object cancellationPayload, long timeout, TimeUnit unit) {
 		Objects.requireNonNull(unit, "'unit' parameter must not be null");
 		final TaskCompleterOfBool completer = TaskCompleterOfBool.create(); //Never use the completer
 		final TaskOfBool delayed = new BlockingTaskOfBool.ConditionWaiterTaskOfBool(completer);
@@ -271,7 +271,7 @@ public final class PrimitiveTasks {
 	 * @throws RejectedExecutionException When the action that completes the {@link Task} after the timeout elapses could not be scheduled
 	 * on the global timer thread pool using {@link GlobalTimer#scheduleOnce(Runnable, long, TimeUnit)}
 	 */
-	public static TaskOfBool failAfter(Throwable failureReason, long timeout, TimeUnit unit) {
+	public static TaskOfBool failAfterBool(Throwable failureReason, long timeout, TimeUnit unit) {
 		Objects.requireNonNull(failureReason, "'failureReason' parameter must not be null");
 		Objects.requireNonNull(unit, "'unit' parameter must not be null");
 		final TaskCompleterOfBool completer = TaskCompleterOfBool.create(); //Never use the completer
@@ -297,7 +297,7 @@ public final class PrimitiveTasks {
 	 * @return A task that will complete after the timeout elapses
 	 * @throws NullPointerException When {@code unit} is {@code null}
 	 */
-	public static TaskOfBool succeedAfter(boolean value, long timeout, TimeUnit unit) {
+	public static TaskOfBool succeedAfterBool(boolean value, long timeout, TimeUnit unit) {
 		Objects.requireNonNull(unit, "'unit' parameter must not be null");
 		final TaskCompleterOfBool completer = TaskCompleterOfBool.create();
 		final TaskOfBool delayed = new BlockingTaskOfBool.ConditionWaiterTaskOfBool(completer);
