@@ -142,6 +142,8 @@ public final class Tasks {
 	 * @return A {@link Task} that waits for the inner task to finish and then applies a function to the result.
 	 */
 	public static <I, V> TaskOf<V> chain(TaskOf<I> inner, Function<? super I, ? extends V> operation) {
+		Objects.requireNonNull(inner, "'inner' parameter must not be null");
+		Objects.requireNonNull(operation, "'operation' parameter must not be null");
 		TaskCompleterOf<V> tco = TaskCompleterOf.create();
 		TaskOf<V> resultTask = Tasks.startBlocking(tco);
 		inner.onSuccess(value -> {
@@ -198,6 +200,9 @@ public final class Tasks {
 	 * @return A {@link Task} that waits for the inner task to finish and then applies a function to the result.
 	 */
 	public static <I, V> TaskOf<V> chainAsync(TaskOf<I> inner, Function<? super I, ? extends V> operation, ExecutorService executor) {
+		Objects.requireNonNull(inner, "'inner' parameter must not be null");
+		Objects.requireNonNull(operation, "'operation' parameter must not be null");
+		Objects.requireNonNull(executor, "'executor' parameter must not be null");
 		TaskCompleterOf<V> tco = TaskCompleterOf.create();
 		TaskOf<V> resultTask = Tasks.startBlocking(tco);
 		inner.onSuccessAsync(value -> tco.signalSuccess(operation.apply(value)), executor);

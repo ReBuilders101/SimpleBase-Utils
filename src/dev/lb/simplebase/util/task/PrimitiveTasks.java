@@ -93,6 +93,8 @@ public final class PrimitiveTasks {
 	 * @return A {@link Task} that waits for the inner task to finish and then applies a function to the result.
 	 */
 	public static <V> TaskOf<V> chainInBool(TaskOfBool inner, BooleanFunction<? extends V> operation) {
+		Objects.requireNonNull(inner, "'inner' parameter must not be null");
+		Objects.requireNonNull(operation, "'operation' parameter must not be null");
 		TaskCompleterOf<V> tco = TaskCompleterOf.create();
 		TaskOf<V> resultTask = Tasks.startBlocking(tco);
 		inner.onSuccess(value -> {
@@ -147,6 +149,9 @@ public final class PrimitiveTasks {
 	 * @return A {@link Task} that waits for the inner task to finish and then applies a function to the result.
 	 */
 	public static <V> TaskOf<V> chainInAsyncBool(TaskOfBool inner, BooleanFunction<? extends V> operation, ExecutorService executor) {
+		Objects.requireNonNull(inner, "'inner' parameter must not be null");
+		Objects.requireNonNull(operation, "'operation' parameter must not be null");
+		Objects.requireNonNull(executor, "'executor' parameter must not be null");
 		TaskCompleterOf<V> tco = TaskCompleterOf.create();
 		TaskOf<V> resultTask = Tasks.startBlocking(tco);
 		inner.onSuccessAsync(value -> tco.signalSuccess(operation.apply(value)), executor);
@@ -173,6 +178,8 @@ public final class PrimitiveTasks {
 	 * @return A {@link Task} that waits for the inner task to finish and then applies a function to the result.
 	 */
 	public static <V> TaskOfBool chainOutBool(TaskOf<V> inner, Predicate<? super V> operation) {
+		Objects.requireNonNull(inner, "'inner' parameter must not be null");
+		Objects.requireNonNull(operation, "'operation' parameter must not be null");
 		TaskCompleterOfBool tco = TaskCompleterOfBool.create();
 		TaskOfBool resultTask = PrimitiveTasks.startBlockingBool(tco);
 		inner.onSuccess(value -> {
@@ -227,6 +234,9 @@ public final class PrimitiveTasks {
 	 * @return A {@link Task} that waits for the inner task to finish and then applies a function to the result.
 	 */
 	public static <V> TaskOfBool chainOutAsyncBool(TaskOf<V> inner, Predicate<? super V> operation, ExecutorService executor) {
+		Objects.requireNonNull(inner, "'inner' parameter must not be null");
+		Objects.requireNonNull(operation, "'operation' parameter must not be null");
+		Objects.requireNonNull(executor, "'executor' parameter must not be null");
 		TaskCompleterOfBool tco = TaskCompleterOfBool.create();
 		TaskOfBool resultTask = PrimitiveTasks.startBlockingBool(tco);
 		inner.onSuccessAsync(value -> tco.signalSuccess(operation.test(value)), executor);
@@ -380,6 +390,8 @@ public final class PrimitiveTasks {
 	 * @return A {@link Task} that waits for the inner task to finish and then applies a function to the result.
 	 */
 	public static <V> TaskOf<V> chainInInt(TaskOfInt inner, IntFunction<? extends V> operation) {
+		Objects.requireNonNull(inner, "'inner' parameter must not be null");
+		Objects.requireNonNull(operation, "'operation' parameter must not be null");
 		TaskCompleterOf<V> tco = TaskCompleterOf.create();
 		TaskOf<V> resultTask = Tasks.startBlocking(tco);
 		inner.onSuccess(value -> {
@@ -434,6 +446,9 @@ public final class PrimitiveTasks {
 	 * @return A {@link Task} that waits for the inner task to finish and then applies a function to the result.
 	 */
 	public static <V> TaskOf<V> chainInAsyncInt(TaskOfInt inner, IntFunction<? extends V> operation, ExecutorService executor) {
+		Objects.requireNonNull(inner, "'inner' parameter must not be null");
+		Objects.requireNonNull(operation, "'operation' parameter must not be null");
+		Objects.requireNonNull(executor, "'executor' parameter must not be null");
 		TaskCompleterOf<V> tco = TaskCompleterOf.create();
 		TaskOf<V> resultTask = Tasks.startBlocking(tco);
 		inner.onSuccessAsync(value -> tco.signalSuccess(operation.apply(value)), executor);
@@ -460,6 +475,8 @@ public final class PrimitiveTasks {
 	 * @return A {@link Task} that waits for the inner task to finish and then applies a function to the result.
 	 */
 	public static <V> TaskOfInt chainOutInt(TaskOf<V> inner, ToIntFunction<? super V> operation) {
+		Objects.requireNonNull(inner, "'inner' parameter must not be null");
+		Objects.requireNonNull(operation, "'operation' parameter must not be null");
 		TaskCompleterOfInt tco = TaskCompleterOfInt.create();
 		TaskOfInt resultTask = PrimitiveTasks.startBlockingInt(tco);
 		inner.onSuccess(value -> {
@@ -514,6 +531,9 @@ public final class PrimitiveTasks {
 	 * @return A {@link Task} that waits for the inner task to finish and then applies a function to the result.
 	 */
 	public static <V> TaskOfInt chainOutAsyncInt(TaskOf<V> inner, ToIntFunction<? super V> operation, ExecutorService executor) {
+		Objects.requireNonNull(inner, "'inner' parameter must not be null");
+		Objects.requireNonNull(operation, "'operation' parameter must not be null");
+		Objects.requireNonNull(executor, "'executor' parameter must not be null");
 		TaskCompleterOfInt tco = TaskCompleterOfInt.create();
 		TaskOfInt resultTask = PrimitiveTasks.startBlockingInt(tco);
 		inner.onSuccessAsync(value -> tco.signalSuccess(operation.applyAsInt(value)), executor);
