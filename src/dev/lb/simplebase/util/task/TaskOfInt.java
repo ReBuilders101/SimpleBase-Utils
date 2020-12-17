@@ -1,17 +1,16 @@
 package dev.lb.simplebase.util.task;
 
+import java.util.OptionalInt;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
-
-import dev.lb.simplebase.util.function.BooleanConsumer;
-import dev.lb.simplebase.util.value.OptionalBoolean;
+import java.util.function.IntConsumer;
 
 /**
  * A {@link Task} that contains a boolean result.
  */
-public interface TaskOfBool extends Task {
+public interface TaskOfInt extends Task {
 	
 	/**
 	 * Adds a handler that will be run when this task completes successfully.
@@ -24,7 +23,7 @@ public interface TaskOfBool extends Task {
 	 * @return This task
 	 * @throws NullPointerException When {@code action} is {@code null}
 	 */
-	public TaskOfBool onSuccess(BooleanConsumer action);
+	public TaskOfInt onSuccess(IntConsumer action);
 	/**
 	 * Adds a handler that will be run with the {@link Task#defaultExecutor()} when this task completes successfully.
 	 * <p>
@@ -36,7 +35,7 @@ public interface TaskOfBool extends Task {
 	 * @return This task
 	 * @throws NullPointerException When {@code action} is {@code null}
 	 */
-	public default TaskOfBool onSuccessAsync(BooleanConsumer action) {
+	public default TaskOfInt onSuccessAsync(IntConsumer action) {
 		return onSuccessAsync(action, Task.defaultExecutor());
 	}
 	/**
@@ -51,19 +50,19 @@ public interface TaskOfBool extends Task {
 	 * @return This task
 	 * @throws NullPointerException When {@code action} or {@code executor} is {@code null}
 	 */
-	public TaskOfBool onSuccessAsync(BooleanConsumer action, ExecutorService executor);
+	public TaskOfInt onSuccessAsync(IntConsumer action, ExecutorService executor);
 	
 	/**
 	 * Waits for this task to be completed.
 	 * @return This task
 	 * @throws InterruptedException When the waiting thread is interrupted while waiting or the interrupt status is set when calling this method
 	 */
-	@Override public TaskOfBool await() throws InterruptedException;
+	@Override public TaskOfInt await() throws InterruptedException;
 	/**
 	 * Waits for this task to be completed. Ignores interruption of the waiting thread.
 	 * @return This task
 	 */
-	@Override public TaskOfBool awaitUninterruptibly();
+	@Override public TaskOfInt awaitUninterruptibly();
 	/**
 	 * Waits for this task to be completed or until the timeout elapses.
 	 * @param timeout The maximum time to wait for completion
@@ -73,7 +72,7 @@ public interface TaskOfBool extends Task {
 	 * @throws TimeoutException When the timeout expires before the task completes
 	 * @throws NullPointerException When {@code unit} is {@code null}
 	 */
-	@Override public TaskOfBool await(long timeout, TimeUnit unit) throws InterruptedException, TimeoutException;
+	@Override public TaskOfInt await(long timeout, TimeUnit unit) throws InterruptedException, TimeoutException;
 	/**
 	 * Waits for this task to be completed or until the timeout elapses. Ignores interruption of the waiting thread.
 	 * @param timeout The maximum time to wait for completion
@@ -82,7 +81,7 @@ public interface TaskOfBool extends Task {
 	 * @throws TimeoutException When the timeout expires before the task completes
 	 * @throws NullPointerException When {@code unit} is {@code null}
 	 */
-	@Override public TaskOfBool awaitUninterruptibly(long timeout, TimeUnit unit) throws TimeoutException;
+	@Override public TaskOfInt awaitUninterruptibly(long timeout, TimeUnit unit) throws TimeoutException;
 	/**
 	 * Waits for this task to be completed or until the condition is cancelled.
 	 * @param condition The {@link CancelCondition} that can be used to stop waiting for completion
@@ -91,7 +90,7 @@ public interface TaskOfBool extends Task {
 	 * @throws CancelledException When waiting is stopped by the {@link CancelCondition} (<b>not</b> when the task is cancelled)
 	 * @throws NullPointerException When {@code condition} is {@code null}
 	 */
-	@Override public TaskOfBool await(CancelCondition condition) throws InterruptedException, CancelledException;
+	@Override public TaskOfInt await(CancelCondition condition) throws InterruptedException, CancelledException;
 	/**
 	 * Waits for this task to be completed or until the condition is cancelled. Ignores interruption of the waiting thread.
 	 * @param condition The {@link CancelCondition} that can be used to stop waiting for completion
@@ -99,7 +98,7 @@ public interface TaskOfBool extends Task {
 	 * @throws CancelledException When waiting is stopped by the {@link CancelCondition} (<b>not</b> when the task is cancelled)
 	 * @throws NullPointerException When {@code condition} is {@code null}
 	 */
-	@Override public TaskOfBool awaitUninterruptibly(CancelCondition condition) throws CancelledException;
+	@Override public TaskOfInt awaitUninterruptibly(CancelCondition condition) throws CancelledException;
 	/**
 	 * Waits for this task to be completed or until the timeout elapses or until the condition is cancelled.
 	 * @param timeout The maximum time to wait for completion
@@ -111,7 +110,7 @@ public interface TaskOfBool extends Task {
 	 * @throws CancelledException When waiting is stopped by the {@link CancelCondition} (<b>not</b> when the task is cancelled)
 	 * @throws NullPointerException When {@code unit} or {@code condition} is {@code null}
 	 */
-	@Override public TaskOfBool await(long timeout, TimeUnit unit, CancelCondition condition) throws InterruptedException, TimeoutException, CancelledException;
+	@Override public TaskOfInt await(long timeout, TimeUnit unit, CancelCondition condition) throws InterruptedException, TimeoutException, CancelledException;
 	/**
 	 * Waits for this task to be completed or until the timeout elapses or until the condition is cancelled. Ignores interruption of the waiting thread.
 	 * @param timeout The maximum time to wait for completion
@@ -122,7 +121,7 @@ public interface TaskOfBool extends Task {
 	 * @throws CancelledException When waiting is stopped by the {@link CancelCondition} (<b>not</b> when the task is cancelled)
 	 * @throws NullPointerException When {@code unit} or {@code condition} is {@code null}
 	 */
-	@Override public TaskOfBool awaitUninterruptibly(long timeout, TimeUnit unit, CancelCondition condition) throws TimeoutException, CancelledException;
+	@Override public TaskOfInt awaitUninterruptibly(long timeout, TimeUnit unit, CancelCondition condition) throws TimeoutException, CancelledException;
 	/**
 	 * Checks for any exceptions thrown by the action associated with this task, and rethrows that exception.
 	 * <p>
@@ -133,7 +132,7 @@ public interface TaskOfBool extends Task {
 	 * @throws Throwable The {@link Throwable} that caused the task to fail, if present
 	 * @see #hasUnconsumedException()
 	 */
-	@Override public TaskOfBool checkFailure() throws Throwable;
+	@Override public TaskOfInt checkFailure() throws Throwable;
 	/**
 	 * Checks for any exceptions of type {@code E} thrown by the action associated with this task, and rethrows that exception.
 	 * <p>
@@ -149,7 +148,7 @@ public interface TaskOfBool extends Task {
 	 * @throws E The {@link Throwable} of type {@code E} that caused the task to fail, if present
 	 * @throws NullPointerException When {@code expectedType} is {@code null}
 	 */
-	@Override public <E extends Throwable> TaskOfBool checkFailure(Class<E> expectedType) throws E;
+	@Override public <E extends Throwable> TaskOfInt checkFailure(Class<E> expectedType) throws E;
 	/**
 	 * Checks for any exceptions thrown by the action associated with this task,
 	 * or for cancellation of this task.
@@ -162,7 +161,7 @@ public interface TaskOfBool extends Task {
 	 * @throws TaskFailureException The {@link TaskFailureException} that wraps the cause of failure, if present
 	 * @throws CancelledException When the task was cancelled
 	 */
-	@Override public TaskOfBool checkSuccess() throws TaskFailureException, CancelledException;
+	@Override public TaskOfInt checkSuccess() throws TaskFailureException, CancelledException;
 	/**
 	 * Adds a handler that will be run when this task is cancelled.
 	 * <p>
@@ -174,7 +173,7 @@ public interface TaskOfBool extends Task {
 	 * @return This task
 	 * @throws NullPointerException When {@code action} is {@code null}
 	 */
-	@Override public TaskOfBool onCancelled(Consumer<CancelledException> action);
+	@Override public TaskOfInt onCancelled(Consumer<CancelledException> action);
 	/**
 	 * Adds a handler that will be run with the {@link Task#defaultExecutor()} when this task is cancelled.
 	 * <p>
@@ -186,7 +185,7 @@ public interface TaskOfBool extends Task {
 	 * @return This task
 	 * @throws NullPointerException When {@code action} is {@code null}
 	 */
-	@Override public default TaskOfBool onCancelledAsync(Consumer<CancelledException> action) {
+	@Override public default TaskOfInt onCancelledAsync(Consumer<CancelledException> action) {
 		return onCancelledAsync(action, Task.defaultExecutor());
 	}
 	/**
@@ -201,7 +200,7 @@ public interface TaskOfBool extends Task {
 	 * @return This task
 	 * @throws NullPointerException When {@code action} or {@code executor} is {@code null}
 	 */
-	@Override public TaskOfBool onCancelledAsync(Consumer<CancelledException> action, ExecutorService executor);
+	@Override public TaskOfInt onCancelledAsync(Consumer<CancelledException> action, ExecutorService executor);
 	/**
 	 * Adds a handler that will be run when this task completes successfully.
 	 * <p>
@@ -209,13 +208,13 @@ public interface TaskOfBool extends Task {
 	 * run immediately on the calling thread. If it is not yet done, the action will run
 	 * on the thread that causes this task to be completed successfully.
 	 * </p><p>
-	 * To access the result value of this task in the handler, use {@link #onSuccess(BooleanConsumer)}.
+	 * To access the result value of this task in the handler, use {@link #onSuccess(IntConsumer)}.
 	 * </p>
 	 * @param action The {@link Runnable} that will be run when the task completes successfully
 	 * @return This task
 	 * @throws NullPointerException When {@code action} is {@code null}
 	 */
-	@Override public TaskOfBool onSuccess(Runnable action);
+	@Override public TaskOfInt onSuccess(Runnable action);
 	/**
 	 * Adds a handler that will be run with the {@link Task#defaultExecutor()} when this task completes successfully.
 	 * <p>
@@ -223,13 +222,13 @@ public interface TaskOfBool extends Task {
 	 * be immediately submitted to the executor. If it is not yet done, the action will
 	 * be submitted to the executor when the task completes successfully.
 	 * </p><p>
-	 * To access the result value of this task in the handler, use {@link #onSuccessAsync(BooleanConsumer)}.
+	 * To access the result value of this task in the handler, use {@link #onSuccessAsync(IntConsumer)}.
 	 * </p>
 	 * @param action The {@link Runnable} that will be run when the task completes successfully
 	 * @return This task
 	 * @throws NullPointerException When {@code action} is {@code null}
 	 */
-	@Override public default TaskOfBool onSuccessAsync(Runnable action) {
+	@Override public default TaskOfInt onSuccessAsync(Runnable action) {
 		return onSuccessAsync(action, Task.defaultExecutor());
 	}
 	/**
@@ -239,14 +238,14 @@ public interface TaskOfBool extends Task {
 	 * be immediately submitted to the executor. If it is not yet done, the action will
 	 * be submitted to the executor when the task completes successfully.
 	 * </p><p>
-	 * To access the result value of this task in the handler, use {@link #onSuccessAsync(BooleanConsumer, ExecutorService)}.
+	 * To access the result value of this task in the handler, use {@link #onSuccessAsync(IntConsumer, ExecutorService)}.
 	 * </p>
 	 * @param action The {@link Runnable} that will be run when the task completes successfully
 	 * @param executor The {@link ExecutorService} that will execute the action
 	 * @return This task
 	 * @throws NullPointerException When {@code action} or {@code executor} is {@code null}
 	 */
-	@Override public TaskOfBool onSuccessAsync(Runnable action, ExecutorService executor);
+	@Override public TaskOfInt onSuccessAsync(Runnable action, ExecutorService executor);
 	/**
 	 * Adds a handler that will be run when this task fails.
 	 * <p>
@@ -258,7 +257,7 @@ public interface TaskOfBool extends Task {
 	 * @return This task
 	 * @throws NullPointerException When {@code action} is {@code null}
 	 */
-	@Override public TaskOfBool onFailure(Consumer<Throwable> action);
+	@Override public TaskOfInt onFailure(Consumer<Throwable> action);
 	/**
 	 * Adds a handler that will be run with the {@link Task#defaultExecutor()} when this task fails.
 	 * <p>
@@ -270,7 +269,7 @@ public interface TaskOfBool extends Task {
 	 * @return This task
 	 * @throws NullPointerException When {@code action} is {@code null}
 	 */
-	@Override public default TaskOfBool onFailureAsync(Consumer<Throwable> action) {
+	@Override public default TaskOfInt onFailureAsync(Consumer<Throwable> action) {
 		return onFailureAsync(action, Task.defaultExecutor());
 	}
 	/**
@@ -285,7 +284,7 @@ public interface TaskOfBool extends Task {
 	 * @return This task
 	 * @throws NullPointerException When {@code action} or {@code executor} is {@code null}
 	 */
-	@Override public TaskOfBool onFailureAsync(Consumer<Throwable> action, ExecutorService executor);
+	@Override public TaskOfInt onFailureAsync(Consumer<Throwable> action, ExecutorService executor);
 	/**
 	 * Adds a handler that will be run when this task completes by either being successful, cancelled or failing.
 	 * The task will run in all three of these cases.
@@ -298,7 +297,7 @@ public interface TaskOfBool extends Task {
 	 * @return This task
 	 * @throws NullPointerException When {@code action} is {@code null}
 	 */
-	@Override public TaskOfBool onCompletion(Consumer<Task> action);
+	@Override public TaskOfInt onCompletion(Consumer<Task> action);
 	/**
 	 * Adds a handler that will be run with the {@link Task#defaultExecutor()} when this task completes
 	 * by either being successful, cancelled or failing. The task will run in all three of these cases.
@@ -311,7 +310,7 @@ public interface TaskOfBool extends Task {
 	 * @return This task
 	 * @throws NullPointerException When {@code action} is {@code null}
 	 */
-	@Override public default TaskOfBool onCompletionAsync(Consumer<Task> action) {
+	@Override public default TaskOfInt onCompletionAsync(Consumer<Task> action) {
 		return onCompletionAsync(action, Task.defaultExecutor());
 	}
 	/**
@@ -327,25 +326,25 @@ public interface TaskOfBool extends Task {
 	 * @return This task
 	 * @throws NullPointerException When {@code action} is {@code null}
 	 */
-	@Override public TaskOfBool onCompletionAsync(Consumer<Task> action, ExecutorService executor);
+	@Override public TaskOfInt onCompletionAsync(Consumer<Task> action, ExecutorService executor);
 	
 	/**
-	 * Will return an {@link OptionalBoolean} with the result value in case the computation has finished successfully.
+	 * Will return an {@link OptionalInt} with the result value in case the computation has finished successfully.
 	 * <p>
 	 * This method <b>returns {@code null}</b> if the task is still running, was cancelled or has failed.
 	 * An empty optional means that the task completed successfully with a result value of {@code null}.
 	 * </p>
-	 * @return An {@link OptionalBoolean} with the result if the computation was successful, {@code null} otherwise
+	 * @return An {@link OptionalInt} with the result if the computation was successful, {@code null} otherwise
 	 */
-	public OptionalBoolean getFinishedResult();
+	public OptionalInt getFinishedResult();
 	/**
 	 * Will return the result value of this task in case the computation has finished successfully.
 	 * <p>
-	 * This method <b>returns {@code false}</b> if the task is still running, was cancelled or has failed.
-	 * It may also return {@code false} when the task has completed successfully with a result value of {@code false}.
+	 * This method <b>returns {@code 0}</b> if the task is still running, was cancelled or has failed.
+	 * It may also return {@code 0} when the task has completed successfully with a result value of {@code 0}.
 	 * </p>
-	 * @return The result of this task if the computation was successful, {@code false} otherwise
+	 * @return The result of this task if the computation was successful, {@code 0} otherwise
 	 */
-	public boolean getResult(); 
+	public int getResult(); 
 	
 }

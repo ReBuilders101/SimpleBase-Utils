@@ -5,11 +5,11 @@ package dev.lb.simplebase.util.function;
  * @param <T> The type of result for the functional method
  */
 @FunctionalInterface
-public interface BooleanToObjectFunction<T> {
+public interface BooleanFunction<T> {
 	/**
-	 * Functional method of {@link BooleanToObjectFunction}. 
+	 * Functional method of {@link BooleanFunction}. 
 	 * @param value The boolean parameter
 	 * @return The produced object
 	 */
-	public T applyBoolean(boolean value);
+	public T apply(boolean value);
 }
