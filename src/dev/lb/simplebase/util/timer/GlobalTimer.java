@@ -5,10 +5,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import dev.lb.simplebase.util.OutParamStateException;
+import dev.lb.simplebase.util.annotation.Out;
 import dev.lb.simplebase.util.annotation.StaticType;
 import dev.lb.simplebase.util.task.CancelCondition;
 import dev.lb.simplebase.util.value.Lazy;
@@ -39,17 +40,21 @@ public final class GlobalTimer {
 	/**
 	 * Schedules a task to run a single time in the future.
 	 * @param task The {@link Runnable} that will run
-	 * @param condition A {@link CancelCondition} that can be cancelled to prevent execution
+	 * @param condition <i>&#064;Out</i> A {@link CancelCondition} that can be cancelled to prevent execution
 	 * @param timeout The time to wait before running
 	 * @param unit The {@link TimeUnit} for the timeout
 	 * @return A {@link Delayed} that reports how much time is left until the action runs
+	 * @throws OutParamStateException When the {@code condition} has already been assoicated with a different action
 	 * @throws RejectedExecutionException When the task could not be submitted to the backing {@link ExecutorService}
 	 * @throws NullPointerException When {@code task} or {@code unit} is {@code null}
 	 */
-	public static Delayed scheduleOnce(Runnable task, CancelCondition condition, long timeout, TimeUnit unit) {
-		ScheduledFuture<?> f = service.get().schedule(task, timeout, unit);
-		condition.onCancelled((ex) -> f.cancel(false)); //Just pervent the wait, not the running
-		return f;
+	public static Delayed scheduleOnce(Runnable task, @Out CancelCondition condition, long timeout, TimeUnit unit) throws OutParamStateException {
+		var future = condition.setupActionWithContext(() ->  service.get().schedule(task, timeout, unit), (f, ex) -> f.cancel(false));
+		if(future == null) {
+			throw new OutParamStateException("Out parameter 'condition' was already associated with an action");
+		} else {
+			return future;
+		}
 	}
 	
 	/**

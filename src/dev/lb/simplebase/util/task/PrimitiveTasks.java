@@ -11,6 +11,8 @@ import java.util.function.IntFunction;
 import java.util.function.Predicate;
 import java.util.function.ToIntFunction;
 
+import dev.lb.simplebase.util.OutParamStateException;
+import dev.lb.simplebase.util.annotation.Out;
 import dev.lb.simplebase.util.annotation.StaticType;
 import dev.lb.simplebase.util.function.BooleanFunction;
 import dev.lb.simplebase.util.task.Task.State;
@@ -59,20 +61,24 @@ public final class PrimitiveTasks {
 	}
 	
 	/**
-	 * Creates a {@link TaskOfBool} that will wait until a {@link TaskCompleterOf} is signalled.
+	 * Creates a {@link TaskOfBool} that will wait until a {@link TaskCompleterOfBool} is signalled.
 	 * <p>
 	 * <b>Important:</b> The condition object should be created explicitly for this task, as
 	 * user actions done on the task may also signal the condition (e.g. a call to {@link TaskOf#cancel()}
 	 * will signal the condition to resume waiting threads).
 	 * </p>
-	 * @param completionSource The {@link TaskCompleterOf} that will complete the task
-	 * @return A {@link TaskOf} that will complete when the completion source is signalled
+	 * @param completionSource <i>&#064;</i> The {@link TaskCompleterOfBool} that will complete the task
+	 * @return A {@link TaskOfBool} that will complete when the completion source is signalled
 	 * @throws NullPointerException When {@code completionSource} is {@code null}
-	 * @throws IllegalArgumentException When the {@code completionSource} was already used to construct another task
+	 * @throws OutParamStateException When the {@code completionSource} was already used to construct another task
 	 */
-	public static TaskOfBool startBlockingBool(TaskCompleterOfBool completionSource) {
+	public static TaskOfBool startBlockingBool(@Out TaskCompleterOfBool completionSource) throws OutParamStateException {
 		Objects.requireNonNull(completionSource, "'completionSource' parameter must not be null");
-		return new BlockingTaskOfBool.ConditionWaiterTaskOfBool(completionSource);
+		try {
+			return new BlockingTaskOfBool.ConditionWaiterTaskOfBool(completionSource);
+		} catch (IllegalArgumentException e) {
+			throw new OutParamStateException("'completionSource' parameter was already used for another task", e);
+		}
 	}
 	
 	/**
@@ -356,20 +362,24 @@ public final class PrimitiveTasks {
 	}
 	
 	/**
-	 * Creates a {@link TaskOfInt} that will wait until a {@link TaskCompleterOf} is signalled.
+	 * Creates a {@link TaskOfInt} that will wait until a {@link TaskCompleterOfInt} is signalled.
 	 * <p>
 	 * <b>Important:</b> The condition object should be created explicitly for this task, as
 	 * user actions done on the task may also signal the condition (e.g. a call to {@link TaskOf#cancel()}
 	 * will signal the condition to resume waiting threads).
 	 * </p>
-	 * @param completionSource The {@link TaskCompleterOf} that will complete the task
-	 * @return A {@link TaskOf} that will complete when the completion source is signalled
+	 * @param completionSource <i>&#064;Out</i> The {@link TaskCompleterOfInt} that will complete the task
+	 * @return A {@link TaskOfInt} that will complete when the completion source is signalled
 	 * @throws NullPointerException When {@code completionSource} is {@code null}
-	 * @throws IllegalArgumentException When the {@code completionSource} was already used to construct another task
+	 * @throws OutParamStateException When the {@code completionSource} was already used to construct another task
 	 */
-	public static TaskOfInt startBlockingInt(TaskCompleterOfInt completionSource) {
+	public static TaskOfInt startBlockingInt(@Out TaskCompleterOfInt completionSource) throws OutParamStateException {
 		Objects.requireNonNull(completionSource, "'completionSource' parameter must not be null");
-		return new BlockingTaskOfInt.ConditionWaiterTaskOfInt(completionSource);
+		try {
+			return new BlockingTaskOfInt.ConditionWaiterTaskOfInt(completionSource);
+		} catch (IllegalArgumentException e) {
+			throw new OutParamStateException("'completionSource' parameter was already used for another task", e);
+		}
 	}
 	
 	/**

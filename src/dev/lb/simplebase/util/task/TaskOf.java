@@ -6,6 +6,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 
+import dev.lb.simplebase.util.OutParamStateException;
+import dev.lb.simplebase.util.annotation.Out;
+
 /**
  * Represents a potentially asynchrounous action or other blocking operation with a result.
  * @param <T> The type of the resulting value
@@ -84,44 +87,48 @@ public interface TaskOf<T> extends Task {
 	@Override public TaskOf<T> awaitUninterruptibly(long timeout, TimeUnit unit) throws TimeoutException;
 	/**
 	 * Waits for this task to be completed or until the condition is cancelled.
-	 * @param condition The {@link CancelCondition} that can be used to stop waiting for completion
+	 * @param condition <i>&#064;Out</i> The {@link CancelCondition} that can be used to stop waiting for completion
 	 * @return This task
 	 * @throws InterruptedException When the waiting thread is interrupted while waiting or the interrupt status is set when calling this method
 	 * @throws CancelledException When waiting is stopped by the {@link CancelCondition} (<b>not</b> when the task is cancelled)
+	 * @throws OutParamStateException When the {@code condition} has already been assoicated with a different action
 	 * @throws NullPointerException When {@code condition} is {@code null}
 	 */
-	@Override public TaskOf<T> await(CancelCondition condition) throws InterruptedException, CancelledException;
+	@Override public TaskOf<T> await(@Out CancelCondition condition) throws InterruptedException, CancelledException, OutParamStateException;
 	/**
 	 * Waits for this task to be completed or until the condition is cancelled. Ignores interruption of the waiting thread.
-	 * @param condition The {@link CancelCondition} that can be used to stop waiting for completion
+	 * @param condition <i>&#064;Out</i> The {@link CancelCondition} that can be used to stop waiting for completion
 	 * @return This task
 	 * @throws CancelledException When waiting is stopped by the {@link CancelCondition} (<b>not</b> when the task is cancelled)
+	 * @throws OutParamStateException When the {@code condition} has already been assoicated with a different action
 	 * @throws NullPointerException When {@code condition} is {@code null}
 	 */
-	@Override public TaskOf<T> awaitUninterruptibly(CancelCondition condition) throws CancelledException;
+	@Override public TaskOf<T> awaitUninterruptibly(@Out CancelCondition condition) throws CancelledException, OutParamStateException;
 	/**
 	 * Waits for this task to be completed or until the timeout elapses or until the condition is cancelled.
 	 * @param timeout The maximum time to wait for completion
 	 * @param unit The {@link TimeUnit} for the timeout
-	 * @param condition The {@link CancelCondition} that can be used to stop waiting for completion
+	 * @param condition <i>&#064;Out</i> The {@link CancelCondition} that can be used to stop waiting for completion
 	 * @return This task
 	 * @throws InterruptedException When the waiting thread is interrupted while waiting or the interrupt status is set when calling this method
 	 * @throws TimeoutException When the timeout expires before the task completes
 	 * @throws CancelledException When waiting is stopped by the {@link CancelCondition} (<b>not</b> when the task is cancelled)
+	 * @throws OutParamStateException When the {@code condition} has already been assoicated with a different action
 	 * @throws NullPointerException When {@code unit} or {@code condition} is {@code null}
 	 */
-	@Override public TaskOf<T> await(long timeout, TimeUnit unit, CancelCondition condition) throws InterruptedException, TimeoutException, CancelledException;
+	@Override public TaskOf<T> await(long timeout, TimeUnit unit, @Out CancelCondition condition) throws InterruptedException, TimeoutException, CancelledException, OutParamStateException;
 	/**
 	 * Waits for this task to be completed or until the timeout elapses or until the condition is cancelled. Ignores interruption of the waiting thread.
 	 * @param timeout The maximum time to wait for completion
 	 * @param unit The {@link TimeUnit} for the timeout
-	 * @param condition The {@link CancelCondition} that can be used to stop waiting for completion
+	 * @param condition <i>&#064;Out</i> The {@link CancelCondition} that can be used to stop waiting for completion
 	 * @return This task
 	 * @throws TimeoutException When the timeout expires before the task completes
 	 * @throws CancelledException When waiting is stopped by the {@link CancelCondition} (<b>not</b> when the task is cancelled)
+	 * @throws OutParamStateException When the {@code condition} has already been assoicated with a different action
 	 * @throws NullPointerException When {@code unit} or {@code condition} is {@code null}
 	 */
-	@Override public TaskOf<T> awaitUninterruptibly(long timeout, TimeUnit unit, CancelCondition condition) throws TimeoutException, CancelledException;
+	@Override public TaskOf<T> awaitUninterruptibly(long timeout, TimeUnit unit, @Out CancelCondition condition) throws TimeoutException, CancelledException, OutParamStateException;
 	/**
 	 * Checks for any exceptions thrown by the action associated with this task, and rethrows that exception.
 	 * <p>

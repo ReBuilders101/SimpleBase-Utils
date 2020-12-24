@@ -6,13 +6,15 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 
+import dev.lb.simplebase.util.OutParamStateException;
+import dev.lb.simplebase.util.annotation.Out;
 import dev.lb.simplebase.util.annotation.Threadsafe;
 
 /**
  * Represents a potentially asynchrounous action or other blocking operation without result.
  */
 @Threadsafe
-public interface Task extends CancelCondition {
+public interface Task {
 
 	//Task state flags
 	/**
@@ -37,7 +39,6 @@ public interface Task extends CancelCondition {
 	 * the task.
 	 * @return {@code true} when the task was cancelled before completion, {@code false} otherwise
 	 */
-	@Override
 	public boolean isCancelled();
 	/**
 	 * Returns {@code true} when the task completed successfully, {@code false otherwise}.
@@ -68,6 +69,20 @@ public interface Task extends CancelCondition {
 	 * @return {@code true} when the action associated with this task was executed synchonously, {@code false} if it ran asynchrounously.
 	 */
 	public boolean isSynchronous();
+	
+	/**
+	 * Returns {@code true} when cancelling the associated action is no longer possible because the action was completed,
+	 * has failed or was already cancelled.
+	 * @return {@code true} if the action can no longer be cancelled, {@code false} if cancellation is still possible
+	 */
+	public boolean isCancellationExpired();
+	
+	/**
+	 * A {@link CancelledException} that was responsible for the cancellation of this condition.
+	 * Will be {@code null} if {@link #isCancelled()} is {@code false}.
+	 * @return The {@link CancelledException} that cancelled this condition
+	 */
+	public CancelledException getCancellationException();
 	
 	/**
 	 * The current {@link State} of this task.
@@ -136,50 +151,54 @@ public interface Task extends CancelCondition {
 	public Task awaitUninterruptibly(long timeout, TimeUnit unit) throws TimeoutException;
 	/**
 	 * Waits for this task to be completed or until the condition is cancelled.
-	 * @param condition The {@link CancelCondition} that can be used to stop waiting for completion
+	 * @param condition <i>&#064;Out</i> The {@link CancelCondition} that can be used to stop waiting for completion
 	 * @return This task
 	 * @throws InterruptedException When the waiting thread is interrupted while waiting or the interrupt status is set when calling this method
 	 * @throws CancelledException When waiting is stopped by the {@link CancelCondition} (<b>not</b> when the task is cancelled)
+	 * @throws OutParamStateException When the {@code condition} has already been assoicated with a different action
 	 * @throws NullPointerException When {@code condition} is {@code null}
 	 */
-	public Task await(CancelCondition condition) throws InterruptedException, CancelledException;
+	public Task await(@Out CancelCondition condition) throws InterruptedException, CancelledException, OutParamStateException;
 	/**
 	 * Waits for this task to be completed or until the condition is cancelled. Ignores interruption of the waiting thread.
-	 * @param condition The {@link CancelCondition} that can be used to stop waiting for completion
+	 * @param condition <i>&#064;Out</i> The {@link CancelCondition} that can be used to stop waiting for completion
 	 * @return This task
 	 * @throws CancelledException When waiting is stopped by the {@link CancelCondition} (<b>not</b> when the task is cancelled)
+	 * @throws OutParamStateException When the {@code condition} has already been assoicated with a different action
 	 * @throws NullPointerException When {@code condition} is {@code null}
 	 */
-	public Task awaitUninterruptibly(CancelCondition condition) throws CancelledException;
+	public Task awaitUninterruptibly(@Out CancelCondition condition) throws CancelledException, OutParamStateException;
 	/**
 	 * Waits for this task to be completed or until the timeout elapses or until the condition is cancelled.
 	 * @param timeout The maximum time to wait for completion
 	 * @param unit The {@link TimeUnit} for the timeout
-	 * @param condition The {@link CancelCondition} that can be used to stop waiting for completion
+	 * @param condition <i>&#064;Out</i> The {@link CancelCondition} that can be used to stop waiting for completion
 	 * @return This task
 	 * @throws InterruptedException When the waiting thread is interrupted while waiting or the interrupt status is set when calling this method
 	 * @throws TimeoutException When the timeout expires before the task completes
 	 * @throws CancelledException When waiting is stopped by the {@link CancelCondition} (<b>not</b> when the task is cancelled)
+	 * @throws OutParamStateException When the {@code condition} has already been assoicated with a different action
 	 * @throws NullPointerException When {@code unit} or {@code condition} is {@code null}
 	 */
-	public Task await(long timeout, TimeUnit unit, CancelCondition condition) throws InterruptedException, TimeoutException, CancelledException;
+	public Task await(long timeout, TimeUnit unit, @Out CancelCondition condition) throws InterruptedException, TimeoutException, CancelledException, OutParamStateException;
 	/**
 	 * Waits for this task to be completed or until the timeout elapses or until the condition is cancelled. Ignores interruption of the waiting thread.
 	 * @param timeout The maximum time to wait for completion
 	 * @param unit The {@link TimeUnit} for the timeout
-	 * @param condition The {@link CancelCondition} that can be used to stop waiting for completion
+	 * @param condition <i>&#064;Out</i> The {@link CancelCondition} that can be used to stop waiting for completion
 	 * @return This task
 	 * @throws TimeoutException When the timeout expires before the task completes
 	 * @throws CancelledException When waiting is stopped by the {@link CancelCondition} (<b>not</b> when the task is cancelled)
+	 * @throws OutParamStateException When the {@code condition} has already been assoicated with a different action
 	 * @throws NullPointerException When {@code unit} or {@code condition} is {@code null}
 	 */
-	public Task awaitUninterruptibly(long timeout, TimeUnit unit, CancelCondition condition) throws TimeoutException, CancelledException;
+	public Task awaitUninterruptibly(long timeout, TimeUnit unit, @Out CancelCondition condition) throws TimeoutException, CancelledException, OutParamStateException;
 	
 	/**
 	 * Attempts to cancel this {@link Task}.
 	 * @return {@code true} if cancellation was successful and the task stopped running, {@code false} if not
 	 */
-	@Override public default boolean cancel() {
+	public default boolean cancel() {
 		return cancel(null);
 	}
 	/**
@@ -187,7 +206,7 @@ public interface Task extends CancelCondition {
 	 * @param exceptionPayload A nullable object that will be available on the {@link CancelledException} caused by cancelling the task
 	 * @return {@code true} if cancellation was successful and the task stopped running, {@code false} if not
 	 */
-	@Override public boolean cancel(Object exceptionPayload);
+	public boolean cancel(Object exceptionPayload);
 	
 	//Get value
 	/**
@@ -304,7 +323,7 @@ public interface Task extends CancelCondition {
 	 * @return This task
 	 * @throws NullPointerException When {@code action} is {@code null}
 	 */
-	@Override public Task onCancelled(Consumer<CancelledException> action);
+	public Task onCancelled(Consumer<CancelledException> action);
 	/**
 	 * Adds a handler that will be run with the {@link Task#defaultExecutor()} when this task is cancelled.
 	 * <p>
@@ -316,7 +335,7 @@ public interface Task extends CancelCondition {
 	 * @return This task
 	 * @throws NullPointerException When {@code action} is {@code null}
 	 */
-	@Override public default Task onCancelledAsync(Consumer<CancelledException> action) {
+	public default Task onCancelledAsync(Consumer<CancelledException> action) {
 		return onCancelledAsync(action, defaultExecutor());
 	}
 	/**
@@ -331,7 +350,7 @@ public interface Task extends CancelCondition {
 	 * @return This task
 	 * @throws NullPointerException When {@code action} or {@code executor} is {@code null}
 	 */
-	@Override public Task onCancelledAsync(Consumer<CancelledException> action, ExecutorService executor);
+	public Task onCancelledAsync(Consumer<CancelledException> action, ExecutorService executor);
 	
 	/**
 	 * Adds a handler that will be run when this task completes successfully.

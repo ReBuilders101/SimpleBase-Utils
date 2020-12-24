@@ -11,7 +11,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 
+import dev.lb.simplebase.util.OutParamStateException;
 import dev.lb.simplebase.util.annotation.Internal;
+import dev.lb.simplebase.util.annotation.Out;
 
 abstract class BlockingTaskOfInt implements TaskOfInt {
 
@@ -58,12 +60,13 @@ abstract class BlockingTaskOfInt implements TaskOfInt {
 	}
 
 	@Override
-	public TaskOfInt await(CancelCondition condition) throws InterruptedException, CancelledException {
+	public TaskOfInt await(@Out CancelCondition condition) throws InterruptedException, CancelledException, OutParamStateException {
 		//cannot use null as that is the master permit
 		Objects.requireNonNull(condition, "'condition' parameter must not be null");
 
-		//Use the condition as the signal object
-		condition.onCancelled((ex) -> awaiter.signalAll(condition));
+		if(!condition.setupActionWithoutContext(ex -> awaiter.signalAll(condition))) {
+			throw new OutParamStateException("Out parameter 'condition' was already associated with an action");
+		}
 
 		if(awaiter.await(condition) == condition) { //If cancelled (and not completed normally)
 			throw condition.getCancellationException(); //Throw the cancellation cause
@@ -73,12 +76,14 @@ abstract class BlockingTaskOfInt implements TaskOfInt {
 	}
 
 	@Override
-	public TaskOfInt awaitUninterruptibly(CancelCondition condition) throws CancelledException {
+	public TaskOfInt awaitUninterruptibly(@Out CancelCondition condition) throws CancelledException, OutParamStateException {
 		//cannot use null as that is the master permit
 		Objects.requireNonNull(condition, "'condition' parameter must not be null");
 
-		//Use the condition as the signal object
-		condition.onCancelled((ex) -> awaiter.signalAll(condition));
+		if(!condition.setupActionWithoutContext(ex -> awaiter.signalAll(condition))) {
+			throw new OutParamStateException("Out parameter 'condition' was already associated with an action");
+		}
+		
 		if(awaiter.awaitUninterruptibly(condition) == condition) { //If cancelled (and not completed normally)
 			throw condition.getCancellationException(); //Throw the cancellation cause
 		}
@@ -86,13 +91,15 @@ abstract class BlockingTaskOfInt implements TaskOfInt {
 	}
 
 	@Override
-	public TaskOfInt await(long timeout, TimeUnit unit, CancelCondition condition) throws InterruptedException, TimeoutException, CancelledException {
+	public TaskOfInt await(long timeout, TimeUnit unit, @Out CancelCondition condition) throws InterruptedException, TimeoutException, CancelledException, OutParamStateException {
 		//cannot use null as that is the master permit
 		Objects.requireNonNull(condition, "'condition' parameter must not be null");
 		Objects.requireNonNull(unit, "'unit' parameter must not be null");
 
-		//Use the condition as the signal object
-		condition.onCancelled((ex) -> awaiter.signalAll(condition));
+		if(!condition.setupActionWithoutContext(ex -> awaiter.signalAll(condition))) {
+			throw new OutParamStateException("Out parameter 'condition' was already associated with an action");
+		}
+		
 		if(awaiter.await(condition, timeout, unit) == condition) { //If cancelled (and not completed normally)
 			throw condition.getCancellationException(); //Throw the cancellation cause
 		}
@@ -100,13 +107,15 @@ abstract class BlockingTaskOfInt implements TaskOfInt {
 	}
 
 	@Override
-	public TaskOfInt awaitUninterruptibly(long timeout, TimeUnit unit, CancelCondition condition) throws TimeoutException, CancelledException {
+	public TaskOfInt awaitUninterruptibly(long timeout, TimeUnit unit, @Out CancelCondition condition) throws TimeoutException, CancelledException, OutParamStateException {
 		//cannot use null as that is the master permit
 		Objects.requireNonNull(condition, "'condition' parameter must not be null");
 		Objects.requireNonNull(unit, "'unit' parameter must not be null");
 
-		//Use the condition as the signal object
-		condition.onCancelled((ex) -> awaiter.signalAll(condition));
+		if(!condition.setupActionWithoutContext(ex -> awaiter.signalAll(condition))) {
+			throw new OutParamStateException("Out parameter 'condition' was already associated with an action");
+		}
+		
 		if(awaiter.awaitUninterruptibly(condition, timeout, unit) == condition) { //If cancelled (and not completed normally)
 			throw condition.getCancellationException(); //Throw the cancellation cause
 		}

@@ -1,9 +1,9 @@
 package dev.lb.simplebase.util.task;
 
-import java.util.ConcurrentModificationException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 
+import dev.lb.simplebase.util.ImpossibleException;
 import dev.lb.simplebase.util.task.Task.State;
 
 /**
@@ -70,11 +70,12 @@ public class TaskCompleterOf<T> {
 			throw new IllegalArgumentException("TaskCompletionSource is already in use"); //Yes, Illegal arg not state
 		}
 		
+		//These are just assignments, no try-finally required
 		this.successComplete = success;
 		this.failComplete = fail;
 		
 		if(!state.compareAndSet(SETTING, SET)) {
-			throw new ConcurrentModificationException("TaskCompletionSource SETTING state modified by concurrent thread");
+			throw new ImpossibleException("TaskCompletionSource SETTING state modified by concurrent thread");
 		}
 	}
 	

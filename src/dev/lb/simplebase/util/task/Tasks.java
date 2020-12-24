@@ -10,7 +10,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 
+import dev.lb.simplebase.util.OutParamStateException;
 import dev.lb.simplebase.util.annotation.Internal;
+import dev.lb.simplebase.util.annotation.Out;
 import dev.lb.simplebase.util.annotation.StaticType;
 import dev.lb.simplebase.util.task.Task.State;
 import dev.lb.simplebase.util.timer.GlobalTimer;
@@ -95,14 +97,18 @@ public final class Tasks {
 	 * user actions done on the task may also signal the condition (e.g. a call to {@link Task#cancel()}
 	 * will signal the condition to resume waiting threads).
 	 * </p>
-	 * @param completionSource The {@link TaskCompleter} that will complete the task
+	 * @param completionSource <i>&#064;Out</i> The {@link TaskCompleter} that will complete the task
 	 * @return A {@link Task} that will complete when the completion source is signalled
 	 * @throws NullPointerException When {@code completionSource} is {@code null}
-	 * @throws IllegalArgumentException When the {@code completionSource} was already used to construct another task
+	 * @throws OutParamStateException When the {@code completionSource} was already used to construct another task
 	 */
-	public static TaskOf<Void> startBlocking(TaskCompleter completionSource) {
+	public static Task startBlocking(@Out TaskCompleter completionSource) throws OutParamStateException {
 		Objects.requireNonNull(completionSource, "'completionSource' parameter must not be null");
-		return new BlockingTaskOf.ConditionWaiterTaskOf<>(completionSource.inner());
+		try {
+			return new BlockingTaskOf.ConditionWaiterTaskOf<>(completionSource.inner());
+		} catch (IllegalArgumentException e) {
+			throw new OutParamStateException("'completionSource' parameter was already used for another task", e);
+		}
 	}
 	
 	/**
@@ -113,14 +119,18 @@ public final class Tasks {
 	 * will signal the condition to resume waiting threads).
 	 * </p>
 	 * @param <T> The result type of the task
-	 * @param completionSource The {@link TaskCompleterOf} that will complete the task
+	 * @param completionSource <i>&#064;Out</i> The {@link TaskCompleterOf} that will complete the task
 	 * @return A {@link TaskOf} that will complete when the completion source is signalled
 	 * @throws NullPointerException When {@code completionSource} is {@code null}
-	 * @throws IllegalArgumentException When the {@code completionSource} was already used to construct another task
+	 * @throws OutParamStateException When the {@code completionSource} was already used to construct another task
 	 */
-	public static <T> TaskOf<T> startBlocking(TaskCompleterOf<T> completionSource) {
+	public static <T> TaskOf<T> startBlocking(@Out TaskCompleterOf<T> completionSource) throws OutParamStateException {
 		Objects.requireNonNull(completionSource, "'completionSource' parameter must not be null");
-		return new BlockingTaskOf.ConditionWaiterTaskOf<>(completionSource);
+		try {
+			return new BlockingTaskOf.ConditionWaiterTaskOf<>(completionSource);
+		} catch (IllegalArgumentException e) {
+			throw new OutParamStateException("'completionSource' parameter was already used for another task", e);
+		}
 	}
 	
 	/**

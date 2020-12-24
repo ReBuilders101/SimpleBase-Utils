@@ -1,6 +1,5 @@
 package dev.lb.simplebase.util.task;
 
-import java.util.ConcurrentModificationException;
 import java.util.LinkedList;
 import java.util.Objects;
 import java.util.Queue;
@@ -9,7 +8,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-import dev.lb.simplebase.util.annotation.Internal;
+import dev.lb.simplebase.util.ImpossibleException;
 import dev.lb.simplebase.util.annotation.Threadsafe;
 
 
@@ -67,7 +66,7 @@ public class SubscriptionHandler<Context> {
 		}
 		//Switch state to EXPIRED and check for desyncs
 		if(!state.compareAndSet(RUNNING, EXPIRED)) {
-			throw new ConcurrentModificationException("CancelConditionImpl RUNNING state modified by concurrent thread");
+			throw new ImpossibleException("CancelConditionImpl RUNNING state modified by concurrent thread");
 		}
 		return true;
 	}
@@ -120,7 +119,7 @@ public class SubscriptionHandler<Context> {
 		actions.add(action); //Add our element
 		//Reset state to COLLECTING and check for any desyncs
 		if(!state.compareAndSet(ADDING, COLLECTING)) {
-			throw new ConcurrentModificationException("CancelConditionImpl ADDING state modified by concurrent thread");
+			throw new ImpossibleException("CancelConditionImpl ADDING state modified by concurrent thread");
 		}
 		return;
 	}
@@ -148,7 +147,7 @@ public class SubscriptionHandler<Context> {
 		actions.add((ex) -> action.run()); //Add our element
 		//Reset state to COLLECTING and check for any desyncs
 		if(!state.compareAndSet(ADDING, COLLECTING)) {
-			throw new ConcurrentModificationException("CancelConditionImpl ADDING state modified by concurrent thread");
+			throw new ImpossibleException("CancelConditionImpl ADDING state modified by concurrent thread");
 		}
 		return;
 	}
@@ -173,46 +172,6 @@ public class SubscriptionHandler<Context> {
 		Objects.requireNonNull(action, "'action' for onCancelledAsync must not be null");
 		Objects.requireNonNull(executor, "'executor' for onCancelledAsync must not be null");
 		subscribe((ex) -> executor.submit(() -> action.accept(ex)));
-	}
-
-	/**
-	 * A {@link CancelCondition} that can be associated with any action
-	 */
-	@Internal
-	static final class StandaloneCancelCondition extends SubscriptionHandler<CancelledException> implements CancelCondition {
-
-		@Override
-		public boolean cancel(Object exceptionPayload) {
-			return execute(() -> new CancelledException(exceptionPayload));
-		}
-
-		@Override
-		public boolean isCancellationExpired() {
-			return hasBeenExecuted();
-		}
-
-		@Override
-		public CancelCondition onCancelled(Consumer<CancelledException> action) {
-			subscribe(action); //Subscribe checks for null
-			return this;
-		}
-
-		@Override
-		public CancelCondition onCancelledAsync(Consumer<CancelledException> action, ExecutorService executor) {
-			subscribeAsync(action, executor); //SubscribeAsync checks for null
-			return this;
-		}
-
-		@Override
-		public CancelledException getCancellationException() {
-			return getContext();
-		}
-
-		@Override
-		public boolean isCancelled() {
-			return hasBeenExecuted();
-		}
-		
 	}
 	
 }

@@ -190,10 +190,12 @@ public final class Awaiter {
 	 * Makes the permit available and wakes up all threads waiting for that permit,
 	 * or all threads if it is the {@link #MASTER_PERMIT}.
 	 * @param permit The permit key to wait for
+	 * @return {@code true} if {@code permit} is not the master permit, and the master permit and {@code permit} were not present.
+	 * A return value of true means that a wakeup action unique to the passed permit was triggered by this signalAll call.
 	 */
-	public void signalAll(Object permit) {
+	public boolean signalAll(Object permit) {
 		if(availablePermits.contains(permit)) {
-			return;
+			return false;
 		} else {
 			conditionLock.lock();
 			try {
@@ -202,6 +204,9 @@ public final class Awaiter {
 					//Give permit and signal
 					availablePermits.add(permit);
 					condition.signalAll();
+					return permit != MASTER_PERMIT && !availablePermits.contains(MASTER_PERMIT);
+				} else {
+					return false;
 				}
 			} finally {
 				conditionLock.unlock();
