@@ -63,12 +63,12 @@ abstract class BlockingTaskOf<T> implements TaskOf<T> {
 		//cannot use null as that is the master permit
 		Objects.requireNonNull(condition, "'condition' parameter must not be null");
 
-		if(!condition.setupActionWithoutContext(ex -> awaiter.signalAll(condition))) {
+		if(!condition.setupActionWithoutContext(() -> awaiter.signalAll(condition))) {
 			throw new OutParamStateException("Out parameter 'condition' was already associated with an action");
 		}
 
 		if(awaiter.await(condition) == condition) { //If cancelled (and not completed normally)
-			throw condition.getCancellationException(); //Throw the cancellation cause
+			throw condition.createCancelledException(); //Throw the cancellation cause
 		}
 
 		return this;
@@ -79,12 +79,12 @@ abstract class BlockingTaskOf<T> implements TaskOf<T> {
 		//cannot use null as that is the master permit
 		Objects.requireNonNull(condition, "'condition' parameter must not be null");
 
-		if(!condition.setupActionWithoutContext(ex -> awaiter.signalAll(condition))) {
+		if(!condition.setupActionWithoutContext(() -> awaiter.signalAll(condition))) {
 			throw new OutParamStateException("Out parameter 'condition' was already associated with an action");
 		}
 		
 		if(awaiter.awaitUninterruptibly(condition) == condition) { //If cancelled (and not completed normally)
-			throw condition.getCancellationException(); //Throw the cancellation cause
+			throw condition.createCancelledException(); //Throw the cancellation cause
 		}
 		return this;
 	}
@@ -95,12 +95,12 @@ abstract class BlockingTaskOf<T> implements TaskOf<T> {
 		Objects.requireNonNull(condition, "'condition' parameter must not be null");
 		Objects.requireNonNull(unit, "'unit' parameter must not be null");
 
-		if(!condition.setupActionWithoutContext(ex -> awaiter.signalAll(condition))) {
+		if(!condition.setupActionWithoutContext(() -> awaiter.signalAll(condition))) {
 			throw new OutParamStateException("Out parameter 'condition' was already associated with an action");
 		}
 		
 		if(awaiter.await(condition, timeout, unit) == condition) { //If cancelled (and not completed normally)
-			throw condition.getCancellationException(); //Throw the cancellation cause
+			throw condition.createCancelledException(); //Throw the cancellation cause
 		}
 		return this;
 	}
@@ -111,12 +111,12 @@ abstract class BlockingTaskOf<T> implements TaskOf<T> {
 		Objects.requireNonNull(condition, "'condition' parameter must not be null");
 		Objects.requireNonNull(unit, "'unit' parameter must not be null");
 
-		if(!condition.setupActionWithoutContext(ex -> awaiter.signalAll(condition))) {
+		if(!condition.setupActionWithoutContext(() -> awaiter.signalAll(condition))) {
 			throw new OutParamStateException("Out parameter 'condition' was already associated with an action");
 		}
 		
 		if(awaiter.awaitUninterruptibly(condition, timeout, unit) == condition) { //If cancelled (and not completed normally)
-			throw condition.getCancellationException(); //Throw the cancellation cause
+			throw condition.createCancelledException(); //Throw the cancellation cause
 		}
 		return this;
 	}
@@ -279,7 +279,7 @@ abstract class BlockingTaskOf<T> implements TaskOf<T> {
 
 			//Here: Switched WAITING -> CANCELLING
 			//Create the exception: 
-			this.taskCancellationCause = new CancelledException(exceptionPayload);
+			this.taskCancellationCause = new CancelledException("Blocking task cancelled", exceptionPayload);
 			awaiter.signalAll(Awaiter.MASTER_PERMIT);
 			
 			//Now the threads are awake and the cause is initialized: no longer unstable

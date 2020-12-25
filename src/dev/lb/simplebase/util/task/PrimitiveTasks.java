@@ -48,7 +48,7 @@ public final class PrimitiveTasks {
 	 * @return A {@link Task} that is always in state {@link State#CANCELLED}
 	 */
 	public static TaskOfBool cancelledBool() {
-		return new DoneTaskOfBool.CancelledTaskOfBool(new CancelledException(null));
+		return new DoneTaskOfBool.CancelledTaskOfBool(new CancelledException("Task cancelled at creation time", null));
 	}
 	
 	/**
@@ -57,7 +57,7 @@ public final class PrimitiveTasks {
 	 * @return A {@link Task} that is always in state {@link State#CANCELLED}
 	 */
 	public static TaskOfBool cancelledBool(Object payload) {
-		return new DoneTaskOfBool.CancelledTaskOfBool(new CancelledException(payload));
+		return new DoneTaskOfBool.CancelledTaskOfBool(new CancelledException("Task cancelled at creation time", payload));
 	}
 	
 	/**
@@ -353,7 +353,7 @@ public final class PrimitiveTasks {
 	 * @return A {@link Task} that is always in state {@link State#CANCELLED}
 	 */
 	public static TaskOfInt cancelledInt() {
-		return new DoneTaskOfInt.CancelledTaskOfInt(new CancelledException(null));
+		return new DoneTaskOfInt.CancelledTaskOfInt(new CancelledException("Task cancelled at creation time", null));
 	}
 	
 	/**
@@ -362,7 +362,7 @@ public final class PrimitiveTasks {
 	 * @return A {@link Task} that is always in state {@link State#CANCELLED}
 	 */
 	public static TaskOfInt cancelledInt(Object payload) {
-		return new DoneTaskOfInt.CancelledTaskOfInt(new CancelledException(payload));
+		return new DoneTaskOfInt.CancelledTaskOfInt(new CancelledException("Task cancelled at creation time", payload));
 	}
 	
 	/**

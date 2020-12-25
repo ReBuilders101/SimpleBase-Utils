@@ -77,7 +77,7 @@ public final class Tasks {
 	 * @return A {@link Task} that is always in state {@link State#CANCELLED}
 	 */
 	public static <T> TaskOf<T> cancelled() {
-		return new DoneTaskOf.CancelledTaskOf<>(new CancelledException(null));
+		return new DoneTaskOf.CancelledTaskOf<>(new CancelledException("Task cancelled at creation time", null));
 	}
 	
 	/**
@@ -87,7 +87,7 @@ public final class Tasks {
 	 * @return A {@link Task} that is always in state {@link State#CANCELLED}
 	 */
 	public static <T> TaskOf<T> cancelled(Object payload) {
-		return new DoneTaskOf.CancelledTaskOf<>(new CancelledException(payload));
+		return new DoneTaskOf.CancelledTaskOf<>(new CancelledException("Task cancelled at creation time", payload));
 	}
 	
 	/**

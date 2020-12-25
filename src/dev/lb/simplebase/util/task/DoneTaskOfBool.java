@@ -78,7 +78,7 @@ abstract class DoneTaskOfBool implements TaskOfBool {
 	public final TaskOfBool await(@Out CancelCondition condition) throws InterruptedException, CancelledException, OutParamStateException {
 		Objects.requireNonNull(condition, "'condition' parameter must not be null");
 		if(Thread.interrupted()) throw new InterruptedException("Thread had interruped status set when entering Task.await(CancelCondition)");
-		if(!condition.setupActionWithoutContext(ex -> false)) {
+		if(!condition.setupActionWithoutContext(() -> false)) {
 			throw new OutParamStateException("Out parameter 'condition' was already associated with an action");
 		}
 		return this;
@@ -87,7 +87,7 @@ abstract class DoneTaskOfBool implements TaskOfBool {
 	@Override
 	public final TaskOfBool awaitUninterruptibly(@Out CancelCondition condition) throws CancelledException, OutParamStateException {
 		Objects.requireNonNull(condition, "'condition' parameter must not be null");
-		if(!condition.setupActionWithoutContext(ex -> false)) {
+		if(!condition.setupActionWithoutContext(() -> false)) {
 			throw new OutParamStateException("Out parameter 'condition' was already associated with an action");
 		}
 		return this;
@@ -98,7 +98,7 @@ abstract class DoneTaskOfBool implements TaskOfBool {
 		Objects.requireNonNull(unit, "'unit' parameter must not be null");
 		Objects.requireNonNull(condition, "'condition' parameter must not be null");
 		if(Thread.interrupted()) throw new InterruptedException("Thread had interruped status set when entering Task.await(long, TimeUnit, CancelCondition)");
-		if(!condition.setupActionWithoutContext(ex -> false)) {
+		if(!condition.setupActionWithoutContext(() -> false)) {
 			throw new OutParamStateException("Out parameter 'condition' was already associated with an action");
 		}
 		return this;
@@ -108,7 +108,7 @@ abstract class DoneTaskOfBool implements TaskOfBool {
 	public final TaskOfBool awaitUninterruptibly(long timeout, TimeUnit unit, @Out CancelCondition condition) throws TimeoutException, CancelledException, OutParamStateException {
 		Objects.requireNonNull(unit, "'unit' parameter must not be null");
 		Objects.requireNonNull(condition, "'condition' parameter must not be null");
-		if(!condition.setupActionWithoutContext(ex -> false)) {
+		if(!condition.setupActionWithoutContext(() -> false)) {
 			throw new OutParamStateException("Out parameter 'condition' was already associated with an action");
 		}
 		return this;

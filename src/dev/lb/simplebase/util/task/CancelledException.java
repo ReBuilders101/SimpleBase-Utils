@@ -19,8 +19,8 @@ public final class CancelledException extends Exception {
 	 * @param payload A payload object to store with the exception. May be {@code null}
 	 */
 	@Internal
-	CancelledException(Object payload) {
-		super("Task was cancelled before completion");
+	CancelledException(String message, Object payload) {
+		super(message);
 		this.payload = payload;
 	}
 

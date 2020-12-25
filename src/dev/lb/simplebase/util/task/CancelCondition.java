@@ -2,8 +2,7 @@ package dev.lb.simplebase.util.task;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.BiPredicate;
-import java.util.function.Consumer;
+import java.util.function.BooleanSupplier;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
@@ -19,9 +18,8 @@ import dev.lb.simplebase.util.value.AssignOnce;
 @Threadsafe
 public final class CancelCondition {
 
-	private final SubscriptionHandler<CancelledException> handlers;
-	private final AssignOnce<Predicate<CancelledException>> cancelAction; //Can be externally modified
-	private final AssignOnce<CancelledException> exception;
+	private final SubscriptionHandler<Void> handlers;
+	private final AssignOnce<BooleanSupplier> cancelAction; //Can be externally modified
 	private final AtomicInteger state;
 	
 	private static final int IDLE = 0;
@@ -34,7 +32,6 @@ public final class CancelCondition {
 	private CancelCondition() {
 		this.handlers = new SubscriptionHandler<>();
 		this.cancelAction = new AssignOnce<>();
-		this.exception = new AssignOnce<>();
 		this.state = new AtomicInteger();
 	}
 	
@@ -47,8 +44,8 @@ public final class CancelCondition {
 	 * @throws NullPointerException When {@code create} or {@code action} is {@code null}, or {@code create} returns {@code null}
 	 */
 	@Internal
-	public <Context> Context setupActionWithContext(Supplier<Context> create, BiPredicate<Context, CancelledException> action) throws NullPointerException {
-		return cancelAction.tryAssignWithContext(create, ctx -> ex -> action.test(ctx, ex));
+	public <Context> Context setupActionWithContext(Supplier<Context> create, Predicate<Context> action) throws NullPointerException {
+		return cancelAction.tryAssignWithContext(create, ctx -> () -> action.test(ctx));
 	}
 	
 	/**
@@ -57,7 +54,7 @@ public final class CancelCondition {
 	 * @return {@code true} if assigned successfully, {@code false} otherwise
 	 */
 	@Internal
-	public boolean setupActionWithoutContext(Predicate<CancelledException> function) {
+	public boolean setupActionWithoutContext(BooleanSupplier function) {
 		return cancelAction.tryAssign(function);
 	}
 	
@@ -71,65 +68,39 @@ public final class CancelCondition {
 	 * @throws IllegalStateException When this CancelCondition has not ye been associated with a cancellable action.
 	 */
 	public boolean cancel() throws IllegalStateException {
-		return cancel(null);
-	}
-	
-	/**
-	 * Attempts to cancel the associated task or blocking action and runs all cancellation handlers if successful.
-	 * <p>
-	 * If no action is associated with this {@link CancelCondition}, the method returns {@code false}.
-	 * </p>
-	 * @param exceptionPayload A nullable object that will be available on the {@link CancelledException} caused by cancelling the task
-	 * @return {@code true} if cancellation was successful, {@code false} if not
-	 */
-	public boolean cancel(/*Nullable*/ Object exceptionPayload) {
 		//If no action is present, we can't cancel anything
-		if(!cancelAction.isAssigned()) return false;
-		
-		while(!state.compareAndSet(IDLE, TESTING)) {
-			if((state.get() & EXPIRED_MASK) != 0) {
-				return false; //Someone else cancelled the action successfully
-			} else {
-				Thread.onSpinWait();
-			}
-		}
-		//Acquired testing state
-		final var pred = cancelAction.getValue();
-		final var caex = new CancelledException(exceptionPayload);
-		//If cancellation was a success
-		if(pred.test(caex)) {
-			if(!state.compareAndSet(TESTING, RUNNING)) {
-				throw new ImpossibleException("CancelCondition TESTING state modified by concurrent thread");
-			}
-			//Set exception and run handlers
-			if(!exception.tryAssign(caex)) {
-				throw new ImpossibleException("Cannot set cancel exception twice");
-			}
-			
-			if(!handlers.execute(() -> caex)) {
-				throw new ImpossibleException("Cannot run cancel handlers twice");
-			}
-			
-			if(!state.compareAndSet(RUNNING, EXECUTED)) {
-				throw new ImpossibleException("CancelCondition RUNNING state modified by concurrent thread");
-			}
-			return true;
-		} else {
-			//Not cancelled, no handlers, release state
-			if(!state.compareAndSet(TESTING, IDLE)) {
-				throw new ImpossibleException("CancelCondition TESTING state modified by concurrent thread");
-			}
-			return false;
-		}
-	}
-	
-	/**
-	 * A {@link CancelledException} that was responsible for the cancellation of this condition.
-	 * Will be {@code null} if {@link #isCancelled()} is {@code false}.
-	 * @return The {@link CancelledException} that cancelled this condition
-	 */
-	public CancelledException getCancellationException() {
-		return exception.getNullable();
+				if(!cancelAction.isAssigned()) return false;
+				
+				while(!state.compareAndSet(IDLE, TESTING)) {
+					if((state.get() & EXPIRED_MASK) != 0) {
+						return false; //Someone else cancelled the action successfully
+					} else {
+						Thread.onSpinWait();
+					}
+				}
+				//Acquired testing state
+				final var pred = cancelAction.getValue();
+				//If cancellation was a success
+				if(pred.getAsBoolean()) {
+					if(!state.compareAndSet(TESTING, RUNNING)) {
+						throw new ImpossibleException("CancelCondition TESTING state modified by concurrent thread");
+					}
+					
+					if(!handlers.execute(() -> null)) {
+						throw new ImpossibleException("Cannot run cancel handlers twice");
+					}
+					
+					if(!state.compareAndSet(RUNNING, EXECUTED)) {
+						throw new ImpossibleException("CancelCondition RUNNING state modified by concurrent thread");
+					}
+					return true;
+				} else {
+					//Not cancelled, no handlers, release state
+					if(!state.compareAndSet(TESTING, IDLE)) {
+						throw new ImpossibleException("CancelCondition TESTING state modified by concurrent thread");
+					}
+					return false;
+				}
 	}
 	
 	/**
@@ -147,12 +118,12 @@ public final class CancelCondition {
 	 * run immediately on the calling thread. If it is not yet cancelled, the action will run
 	 * on the thread that calls the {@link #cancel()} method on this {@link CancelCondition}.
 	 * </p>
-	 * @param action The {@link Consumer} that will be run when the condition is cancelled
+	 * @param action The {@link Runnable} that will be run when the condition is cancelled
 	 * @return This {@link CancelCondition}
 	 * @throws NullPointerException When {@code action} is {@code null}
 	 */
-	public CancelCondition onCancelled(Consumer<CancelledException> action) {
-		handlers.subscribe(action);
+	public CancelCondition onCancelled(Runnable action) {
+		handlers.subscribeRunnable(action);
 		return this;
 	}
 	/**
@@ -162,11 +133,11 @@ public final class CancelCondition {
 	 * be immediately submitted to the executor. If it is not yet cancelled, the action will run
 	 * be submitted to the executor when {@link #cancel()} is called for this {@link CancelCondition}.
 	 * </p>
-	 * @param action The {@link Consumer} that will be run when the condition is cancelled
+	 * @param action The {@link Runnable} that will be run when the condition is cancelled
 	 * @return This {@link CancelCondition}
 	 * @throws NullPointerException When {@code action} is {@code null}
 	 */
-	public CancelCondition onCancelledAsync(Consumer<CancelledException> action) {
+	public CancelCondition onCancelledAsync(Runnable action) {
 		return onCancelledAsync(action, Task.defaultExecutor());
 	}
 	/**
@@ -176,16 +147,20 @@ public final class CancelCondition {
 	 * be immediately submitted to the executor. If it is not yet cancelled, the action will run
 	 * be submitted to the executor when {@link #cancel()} is called for this {@link CancelCondition}.
 	 * </p>
-	 * @param action The {@link Consumer} that will be run when the condition is cancelled
+	 * @param action The {@link Runnable} that will be run when the condition is cancelled
 	 * @param executor The {@link ExecutorService} that will execute the action
 	 * @return This {@link CancelCondition}
 	 * @throws NullPointerException When {@code action} or {@code executor} is {@code null}
 	 */
-	public CancelCondition onCancelledAsync(Consumer<CancelledException> action, ExecutorService executor) {
-		handlers.subscribeAsync(action, executor);
+	public CancelCondition onCancelledAsync(Runnable action, ExecutorService executor) {
+		handlers.subscribeRunnableAsync(action, executor);
 		return this;
 	}
 
+	/*package*/ CancelledException createCancelledException() {
+		return new CancelledException("CancelCondition cancelled", null);
+	}
+	
 	/**
 	 * Creates a standalone {@link CancelCondition} not directly associated with any task or action.
 	 * <p>

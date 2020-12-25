@@ -49,7 +49,7 @@ public final class GlobalTimer {
 	 * @throws NullPointerException When {@code task} or {@code unit} is {@code null}
 	 */
 	public static Delayed scheduleOnce(Runnable task, @Out CancelCondition condition, long timeout, TimeUnit unit) throws OutParamStateException {
-		var future = condition.setupActionWithContext(() ->  service.get().schedule(task, timeout, unit), (f, ex) -> f.cancel(false));
+		var future = condition.setupActionWithContext(() ->  service.get().schedule(task, timeout, unit), f -> f.cancel(false));
 		if(future == null) {
 			throw new OutParamStateException("Out parameter 'condition' was already associated with an action");
 		} else {
