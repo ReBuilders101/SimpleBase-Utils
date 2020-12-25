@@ -86,7 +86,9 @@ public final class PrimitiveTasks {
 	 * <p>
 	 * If the inner task succeeds, the returned task will succeed with the processed result.<br>
 	 * If the inner task fails with an exception, the returned task will fail with the same exception (same {@link Throwable} instance).<br>
-	 * If the inner task is cancelled, the returned task will be cancelled with the same payload (but a different {@link CancellationException}).<br>
+	 * If the outer task is cancelled, the inner task will be cancelled with the same payload (but a different {@link CancellationException}).<br>
+	 * <b>Calling {@code cancel()} on the inner Task will not cancel the outer task.</b> It is recommended t onot interact with the inner
+	 * task at all after calling this method.
 	 * </p><p>
 	 * If the {@link Function} throws an unchecked exception, the outer task will fail with an {@link ExecutionException}
 	 * wrapping that unchecked exception, even if the inner task succeeded.
@@ -105,13 +107,12 @@ public final class PrimitiveTasks {
 		TaskOf<V> resultTask = Tasks.startBlocking(tco);
 		inner.onSuccess(value -> {
 			try {
-				tco.signalSuccess(operation.apply(value));
+				tco.trySignalSuccess(operation.apply(value));
 			} catch (Throwable e) {
-				tco.signalFailure(new ExecutionException(e));
+				tco.trySignalFailure(new ExecutionException(e));
 			}
 		});
-		inner.onFailure(thrbl -> tco.signalFailure(thrbl));
-		inner.onCancelled(canex -> resultTask.cancel(canex.getPayload()));
+		inner.onFailure(thrbl -> tco.trySignalFailure(thrbl));
 		resultTask.onCancelled(canex -> inner.cancel(canex.getPayload()));
 		return resultTask;
 	}
@@ -121,7 +122,9 @@ public final class PrimitiveTasks {
 	 * <p>
 	 * If the inner task succeeds, the returned task will succeed with the processed result.<br>
 	 * If the inner task fails with an exception, the returned task will fail with the same exception (same {@link Throwable} instance).<br>
-	 * If the inner task is cancelled, the returned task will be cancelled with the same payload (but a different {@link CancellationException}).<br>
+	 * If the outer task is cancelled, the inner task will be cancelled with the same payload (but a different {@link CancellationException}).<br>
+	 * <b>Calling {@code cancel()} on the inner Task will not cancel the outer task.</b> It is recommended t onot interact with the inner
+	 * task at all after calling this method.
 	 * </p><p>
 	 * If the {@link Function} throws an unchecked exception, the outer task will fail with an {@link ExecutionException}
 	 * wrapping that unchecked exception, even if the inner task succeeded.
@@ -142,7 +145,9 @@ public final class PrimitiveTasks {
 	 * <p>
 	 * If the inner task succeeds, the returned task will succeed with the processed result.<br>
 	 * If the inner task fails with an exception, the returned task will fail with the same exception (same {@link Throwable} instance).<br>
-	 * If the inner task is cancelled, the returned task will be cancelled with the same payload (but a different {@link CancellationException}).<br>
+	 * If the outer task is cancelled, the inner task will be cancelled with the same payload (but a different {@link CancellationException}).<br>
+	 * <b>Calling {@code cancel()} on the inner Task will not cancel the outer task.</b> It is recommended t onot interact with the inner
+	 * task at all after calling this method.
 	 * </p><p>
 	 * If the {@link Function} throws an unchecked exception, the outer task will fail with an {@link ExecutionException}
 	 * wrapping that unchecked exception, even if the inner task succeeded.
@@ -161,9 +166,14 @@ public final class PrimitiveTasks {
 		Objects.requireNonNull(executor, "'executor' parameter must not be null");
 		TaskCompleterOf<V> tco = TaskCompleterOf.create();
 		TaskOf<V> resultTask = Tasks.startBlocking(tco);
-		inner.onSuccessAsync(value -> tco.signalSuccess(operation.apply(value)), executor);
-		inner.onFailureAsync(thrbl -> tco.signalFailure(thrbl), executor);
-		inner.onCancelledAsync(canex -> resultTask.cancel(canex.getPayload()), executor);
+		inner.onSuccessAsync(value -> {
+			try {
+				tco.trySignalSuccess(operation.apply(value));
+			} catch (Throwable e) {
+				tco.trySignalFailure(new ExecutionException(e));
+			}
+		}, executor);
+		inner.onFailureAsync(thrbl -> tco.trySignalFailure(thrbl), executor);
 		resultTask.onCancelledAsync(canex -> inner.cancel(canex.getPayload()), executor);
 		return resultTask;
 	}
@@ -173,7 +183,9 @@ public final class PrimitiveTasks {
 	 * <p>
 	 * If the inner task succeeds, the returned task will succeed with the processed result.<br>
 	 * If the inner task fails with an exception, the returned task will fail with the same exception (same {@link Throwable} instance).<br>
-	 * If the inner task is cancelled, the returned task will be cancelled with the same payload (but a different {@link CancellationException}).<br>
+	 * If the outer task is cancelled, the inner task will be cancelled with the same payload (but a different {@link CancellationException}).<br>
+	 * <b>Calling {@code cancel()} on the inner Task will not cancel the outer task.</b> It is recommended t onot interact with the inner
+	 * task at all after calling this method.
 	 * </p><p>
 	 * If the {@link Function} throws an unchecked exception, the outer task will fail with an {@link ExecutionException}
 	 * wrapping that unchecked exception, even if the inner task succeeded.
@@ -192,13 +204,12 @@ public final class PrimitiveTasks {
 		TaskOfBool resultTask = PrimitiveTasks.startBlockingBool(tco);
 		inner.onSuccess(value -> {
 			try {
-				tco.signalSuccess(operation.test(value));
+				tco.trySignalSuccess(operation.test(value));
 			} catch (Throwable e) {
-				tco.signalFailure(new ExecutionException(e));
+				tco.trySignalFailure(new ExecutionException(e));
 			}
 		});
-		inner.onFailure(thrbl -> tco.signalFailure(thrbl));
-		inner.onCancelled(canex -> resultTask.cancel(canex.getPayload()));
+		inner.onFailure(thrbl -> tco.trySignalFailure(thrbl));
 		resultTask.onCancelled(canex -> inner.cancel(canex.getPayload()));
 		return resultTask;
 	}
@@ -208,7 +219,9 @@ public final class PrimitiveTasks {
 	 * <p>
 	 * If the inner task succeeds, the returned task will succeed with the processed result.<br>
 	 * If the inner task fails with an exception, the returned task will fail with the same exception (same {@link Throwable} instance).<br>
-	 * If the inner task is cancelled, the returned task will be cancelled with the same payload (but a different {@link CancellationException}).<br>
+	 * If the outer task is cancelled, the inner task will be cancelled with the same payload (but a different {@link CancellationException}).<br>
+	 * <b>Calling {@code cancel()} on the inner Task will not cancel the outer task.</b> It is recommended t onot interact with the inner
+	 * task at all after calling this method.
 	 * </p><p>
 	 * If the {@link Function} throws an unchecked exception, the outer task will fail with an {@link ExecutionException}
 	 * wrapping that unchecked exception, even if the inner task succeeded.
@@ -229,7 +242,9 @@ public final class PrimitiveTasks {
 	 * <p>
 	 * If the inner task succeeds, the returned task will succeed with the processed result.<br>
 	 * If the inner task fails with an exception, the returned task will fail with the same exception (same {@link Throwable} instance).<br>
-	 * If the inner task is cancelled, the returned task will be cancelled with the same payload (but a different {@link CancellationException}).<br>
+	 * If the outer task is cancelled, the inner task will be cancelled with the same payload (but a different {@link CancellationException}).<br>
+	 * <b>Calling {@code cancel()} on the inner Task will not cancel the outer task.</b> It is recommended t onot interact with the inner
+	 * task at all after calling this method.
 	 * </p><p>
 	 * If the {@link Function} throws an unchecked exception, the outer task will fail with an {@link ExecutionException}
 	 * wrapping that unchecked exception, even if the inner task succeeded.
@@ -248,9 +263,14 @@ public final class PrimitiveTasks {
 		Objects.requireNonNull(executor, "'executor' parameter must not be null");
 		TaskCompleterOfBool tco = TaskCompleterOfBool.create();
 		TaskOfBool resultTask = PrimitiveTasks.startBlockingBool(tco);
-		inner.onSuccessAsync(value -> tco.signalSuccess(operation.test(value)), executor);
-		inner.onFailureAsync(thrbl -> tco.signalFailure(thrbl), executor);
-		inner.onCancelledAsync(canex -> resultTask.cancel(canex.getPayload()), executor);
+		inner.onSuccessAsync(value -> {
+			try {
+				tco.trySignalSuccess(operation.test(value));
+			} catch (Throwable e) {
+				tco.trySignalFailure(new ExecutionException(e));
+			}
+		}, executor);
+		inner.onFailureAsync(thrbl -> tco.trySignalFailure(thrbl), executor);
 		resultTask.onCancelledAsync(canex -> inner.cancel(canex.getPayload()), executor);
 		return resultTask;
 	}
@@ -298,7 +318,7 @@ public final class PrimitiveTasks {
 		Objects.requireNonNull(unit, "'unit' parameter must not be null");
 		final TaskCompleterOfBool completer = TaskCompleterOfBool.create(); //Never use the completer
 		final TaskOfBool delayed = new BlockingTaskOfBool.ConditionWaiterTaskOfBool(completer);
-		GlobalTimer.scheduleOnce(() -> completer.signalFailure(failureReason), timeout, unit);
+		GlobalTimer.scheduleOnce(() -> completer.trySignalFailure(failureReason), timeout, unit);
 		return delayed;
 	}
 	
@@ -323,7 +343,7 @@ public final class PrimitiveTasks {
 		Objects.requireNonNull(unit, "'unit' parameter must not be null");
 		final TaskCompleterOfBool completer = TaskCompleterOfBool.create();
 		final TaskOfBool delayed = new BlockingTaskOfBool.ConditionWaiterTaskOfBool(completer);
-		GlobalTimer.scheduleOnce(() -> completer.signalSuccess(value), timeout, unit);
+		GlobalTimer.scheduleOnce(() -> completer.trySignalSuccess(value), timeout, unit);
 		return delayed;
 	}
 	
@@ -391,7 +411,9 @@ public final class PrimitiveTasks {
 	 * <p>
 	 * If the inner task succeeds, the returned task will succeed with the processed result.<br>
 	 * If the inner task fails with an exception, the returned task will fail with the same exception (same {@link Throwable} instance).<br>
-	 * If the inner task is cancelled, the returned task will be cancelled with the same payload (but a different {@link CancellationException}).<br>
+	 * If the outer task is cancelled, the inner task will be cancelled with the same payload (but a different {@link CancellationException}).<br>
+	 * <b>Calling {@code cancel()} on the inner Task will not cancel the outer task.</b> It is recommended t onot interact with the inner
+	 * task at all after calling this method.
 	 * </p><p>
 	 * If the {@link Function} throws an unchecked exception, the outer task will fail with an {@link ExecutionException}
 	 * wrapping that unchecked exception, even if the inner task succeeded.
@@ -410,13 +432,12 @@ public final class PrimitiveTasks {
 		TaskOf<V> resultTask = Tasks.startBlocking(tco);
 		inner.onSuccess(value -> {
 			try {
-				tco.signalSuccess(operation.apply(value));
+				tco.trySignalSuccess(operation.apply(value));
 			} catch (Throwable e) {
-				tco.signalFailure(new ExecutionException(e));
+				tco.trySignalFailure(new ExecutionException(e));
 			}
 		});
-		inner.onFailure(thrbl -> tco.signalFailure(thrbl));
-		inner.onCancelled(canex -> resultTask.cancel(canex.getPayload()));
+		inner.onFailure(thrbl -> tco.trySignalFailure(thrbl));
 		resultTask.onCancelled(canex -> inner.cancel(canex.getPayload()));
 		return resultTask;
 	}
@@ -426,7 +447,9 @@ public final class PrimitiveTasks {
 	 * <p>
 	 * If the inner task succeeds, the returned task will succeed with the processed result.<br>
 	 * If the inner task fails with an exception, the returned task will fail with the same exception (same {@link Throwable} instance).<br>
-	 * If the inner task is cancelled, the returned task will be cancelled with the same payload (but a different {@link CancellationException}).<br>
+	 * If the outer task is cancelled, the inner task will be cancelled with the same payload (but a different {@link CancellationException}).<br>
+	 * <b>Calling {@code cancel()} on the inner Task will not cancel the outer task.</b> It is recommended t onot interact with the inner
+	 * task at all after calling this method.
 	 * </p><p>
 	 * If the {@link Function} throws an unchecked exception, the outer task will fail with an {@link ExecutionException}
 	 * wrapping that unchecked exception, even if the inner task succeeded.
@@ -447,7 +470,9 @@ public final class PrimitiveTasks {
 	 * <p>
 	 * If the inner task succeeds, the returned task will succeed with the processed result.<br>
 	 * If the inner task fails with an exception, the returned task will fail with the same exception (same {@link Throwable} instance).<br>
-	 * If the inner task is cancelled, the returned task will be cancelled with the same payload (but a different {@link CancellationException}).<br>
+	 * If the outer task is cancelled, the inner task will be cancelled with the same payload (but a different {@link CancellationException}).<br>
+	 * <b>Calling {@code cancel()} on the inner Task will not cancel the outer task.</b> It is recommended t onot interact with the inner
+	 * task at all after calling this method.
 	 * </p><p>
 	 * If the {@link Function} throws an unchecked exception, the outer task will fail with an {@link ExecutionException}
 	 * wrapping that unchecked exception, even if the inner task succeeded.
@@ -466,9 +491,14 @@ public final class PrimitiveTasks {
 		Objects.requireNonNull(executor, "'executor' parameter must not be null");
 		TaskCompleterOf<V> tco = TaskCompleterOf.create();
 		TaskOf<V> resultTask = Tasks.startBlocking(tco);
-		inner.onSuccessAsync(value -> tco.signalSuccess(operation.apply(value)), executor);
-		inner.onFailureAsync(thrbl -> tco.signalFailure(thrbl), executor);
-		inner.onCancelledAsync(canex -> resultTask.cancel(canex.getPayload()), executor);
+		inner.onSuccessAsync(value -> {
+			try {
+				tco.trySignalSuccess(operation.apply(value));
+			} catch (Throwable e) {
+				tco.trySignalFailure(new ExecutionException(e));
+			}
+		}, executor);
+		inner.onFailureAsync(thrbl -> tco.trySignalFailure(thrbl), executor);
 		resultTask.onCancelledAsync(canex -> inner.cancel(canex.getPayload()), executor);
 		return resultTask;
 	}
@@ -478,7 +508,9 @@ public final class PrimitiveTasks {
 	 * <p>
 	 * If the inner task succeeds, the returned task will succeed with the processed result.<br>
 	 * If the inner task fails with an exception, the returned task will fail with the same exception (same {@link Throwable} instance).<br>
-	 * If the inner task is cancelled, the returned task will be cancelled with the same payload (but a different {@link CancellationException}).<br>
+	 * If the outer task is cancelled, the inner task will be cancelled with the same payload (but a different {@link CancellationException}).<br>
+	 * <b>Calling {@code cancel()} on the inner Task will not cancel the outer task.</b> It is recommended t onot interact with the inner
+	 * task at all after calling this method.
 	 * </p><p>
 	 * If the {@link Function} throws an unchecked exception, the outer task will fail with an {@link ExecutionException}
 	 * wrapping that unchecked exception, even if the inner task succeeded.
@@ -497,13 +529,12 @@ public final class PrimitiveTasks {
 		TaskOfInt resultTask = PrimitiveTasks.startBlockingInt(tco);
 		inner.onSuccess(value -> {
 			try {
-				tco.signalSuccess(operation.applyAsInt(value));
+				tco.trySignalSuccess(operation.applyAsInt(value));
 			} catch (Throwable e) {
-				tco.signalFailure(new ExecutionException(e));
+				tco.trySignalFailure(new ExecutionException(e));
 			}
 		});
-		inner.onFailure(thrbl -> tco.signalFailure(thrbl));
-		inner.onCancelled(canex -> resultTask.cancel(canex.getPayload()));
+		inner.onFailure(thrbl -> tco.trySignalFailure(thrbl));
 		resultTask.onCancelled(canex -> inner.cancel(canex.getPayload()));
 		return resultTask;
 	}
@@ -513,7 +544,9 @@ public final class PrimitiveTasks {
 	 * <p>
 	 * If the inner task succeeds, the returned task will succeed with the processed result.<br>
 	 * If the inner task fails with an exception, the returned task will fail with the same exception (same {@link Throwable} instance).<br>
-	 * If the inner task is cancelled, the returned task will be cancelled with the same payload (but a different {@link CancellationException}).<br>
+	 * If the outer task is cancelled, the inner task will be cancelled with the same payload (but a different {@link CancellationException}).<br>
+	 * <b>Calling {@code cancel()} on the inner Task will not cancel the outer task.</b> It is recommended t onot interact with the inner
+	 * task at all after calling this method.
 	 * </p><p>
 	 * If the {@link Function} throws an unchecked exception, the outer task will fail with an {@link ExecutionException}
 	 * wrapping that unchecked exception, even if the inner task succeeded.
@@ -534,7 +567,9 @@ public final class PrimitiveTasks {
 	 * <p>
 	 * If the inner task succeeds, the returned task will succeed with the processed result.<br>
 	 * If the inner task fails with an exception, the returned task will fail with the same exception (same {@link Throwable} instance).<br>
-	 * If the inner task is cancelled, the returned task will be cancelled with the same payload (but a different {@link CancellationException}).<br>
+	 * If the outer task is cancelled, the inner task will be cancelled with the same payload (but a different {@link CancellationException}).<br>
+	 * <b>Calling {@code cancel()} on the inner Task will not cancel the outer task.</b> It is recommended t onot interact with the inner
+	 * task at all after calling this method.
 	 * </p><p>
 	 * If the {@link Function} throws an unchecked exception, the outer task will fail with an {@link ExecutionException}
 	 * wrapping that unchecked exception, even if the inner task succeeded.
@@ -553,9 +588,14 @@ public final class PrimitiveTasks {
 		Objects.requireNonNull(executor, "'executor' parameter must not be null");
 		TaskCompleterOfInt tco = TaskCompleterOfInt.create();
 		TaskOfInt resultTask = PrimitiveTasks.startBlockingInt(tco);
-		inner.onSuccessAsync(value -> tco.signalSuccess(operation.applyAsInt(value)), executor);
-		inner.onFailureAsync(thrbl -> tco.signalFailure(thrbl), executor);
-		inner.onCancelledAsync(canex -> resultTask.cancel(canex.getPayload()), executor);
+		inner.onSuccessAsync(value -> {
+			try {
+				tco.trySignalSuccess(operation.applyAsInt(value));
+			} catch (Throwable e) {
+				tco.trySignalFailure(new ExecutionException(e));
+			}
+		}, executor);
+		inner.onFailureAsync(thrbl -> tco.trySignalFailure(thrbl), executor);
 		resultTask.onCancelledAsync(canex -> inner.cancel(canex.getPayload()), executor);
 		return resultTask;
 	}
@@ -603,7 +643,7 @@ public final class PrimitiveTasks {
 		Objects.requireNonNull(unit, "'unit' parameter must not be null");
 		final TaskCompleterOfInt completer = TaskCompleterOfInt.create(); //Never use the completer
 		final TaskOfInt delayed = new BlockingTaskOfInt.ConditionWaiterTaskOfInt(completer);
-		GlobalTimer.scheduleOnce(() -> completer.signalFailure(failureReason), timeout, unit);
+		GlobalTimer.scheduleOnce(() -> completer.trySignalFailure(failureReason), timeout, unit);
 		return delayed;
 	}
 	
@@ -628,7 +668,7 @@ public final class PrimitiveTasks {
 		Objects.requireNonNull(unit, "'unit' parameter must not be null");
 		final TaskCompleterOfInt completer = TaskCompleterOfInt.create();
 		final TaskOfInt delayed = new BlockingTaskOfInt.ConditionWaiterTaskOfInt(completer);
-		GlobalTimer.scheduleOnce(() -> completer.signalSuccess(value), timeout, unit);
+		GlobalTimer.scheduleOnce(() -> completer.trySignalSuccess(value), timeout, unit);
 		return delayed;
 	}
 }

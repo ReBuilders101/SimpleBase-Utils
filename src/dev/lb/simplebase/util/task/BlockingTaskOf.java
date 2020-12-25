@@ -1,6 +1,5 @@
 package dev.lb.simplebase.util.task;
 
-import java.util.ConcurrentModificationException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
@@ -10,6 +9,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
+import dev.lb.simplebase.util.ImpossibleException;
 import dev.lb.simplebase.util.OutParamStateException;
 import dev.lb.simplebase.util.annotation.Internal;
 import dev.lb.simplebase.util.annotation.Out;
@@ -227,12 +227,19 @@ abstract class BlockingTaskOf<T> implements TaskOf<T> {
 		}
 		
 		private void setupSource(TaskCompleterOf<T> tcs) throws IllegalArgumentException {
-			tcs.setup(this::succeed, this::fail);
+			tcs.setup(this::succeed, this::fail, this::getCancellationException);
 		}
 
-		private boolean succeed(T value) {
+		private boolean succeed(T value) throws CancelledException{
 			//If not waiting, someone is currently completing or completed already
 			if(!state.compareAndSet(WAITING, SUCCEEDING)) {
+				if((state.get() & CANCEL_MASK) != 0) { //Cancelling or cancelled
+					while(state.get() != CANCELLED) { //Wait for a stable state
+						Thread.onSpinWait();
+					}
+					throw taskCancellationCause;
+				}
+				//Already succeeded/failed
 				return false;
 			}
 			
@@ -241,7 +248,7 @@ abstract class BlockingTaskOf<T> implements TaskOf<T> {
 
 			//Now the threads are awake and the cause is initialized: no longer unstable
 			if(!state.compareAndSet(SUCCEEDING, SUCCESS)) {
-				throw new ConcurrentModificationException("ConditionWaiterTask SUCCEEDING state modified by concurrent thread");
+				throw new ImpossibleException("ConditionWaiterTask SUCCEEDING state modified by concurrent thread");
 			}
 			
 			onSuccess.execute(() -> null);
@@ -250,9 +257,16 @@ abstract class BlockingTaskOf<T> implements TaskOf<T> {
 			return true;
 		}
 		
-		private boolean fail(Throwable throwable) {
+		private boolean fail(Throwable throwable) throws CancelledException {
 			//If not waiting, someone is currently completing or completed already
 			if(!state.compareAndSet(WAITING, FAILING)) {
+				if((state.get() & CANCEL_MASK) != 0) { //Cancelling or cancelled
+					while(state.get() != CANCELLED) { //Wait for a stable state
+						Thread.onSpinWait();
+					}
+					throw taskCancellationCause;
+				}
+				//Already succeeded/failed
 				return false;
 			}
 
@@ -261,7 +275,7 @@ abstract class BlockingTaskOf<T> implements TaskOf<T> {
 			
 			//Now the threads are awake and the cause is initialized: no longer unstable
 			if(!state.compareAndSet(FAILING, FAILED)) {
-				throw new ConcurrentModificationException("ConditionWaiterTask FAILING state modified by concurrent thread");
+				throw new ImpossibleException("ConditionWaiterTask FAILING state modified by concurrent thread");
 			}
 			
 			onFailure.execute(() -> throwable);
@@ -284,7 +298,7 @@ abstract class BlockingTaskOf<T> implements TaskOf<T> {
 			
 			//Now the threads are awake and the cause is initialized: no longer unstable
 			if(!state.compareAndSet(CANCELLING, CANCELLED)) {
-				throw new ConcurrentModificationException("ConditionWaiterTask CANCELLING state modified by concurrent thread");
+				throw new ImpossibleException("ConditionWaiterTask CANCELLING state modified by concurrent thread");
 			}
 			
 			//Run the handlers afterwards, with a non-broken state
@@ -351,7 +365,7 @@ abstract class BlockingTaskOf<T> implements TaskOf<T> {
 			}
 			//Consume and throw
 			if(consumed.compareAndSet(false, true)) {
-				throw  thrownException;
+				throw thrownException;
 			}
 
 			return this;

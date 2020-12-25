@@ -138,7 +138,9 @@ public final class Tasks {
 	 * <p>
 	 * If the inner task succeeds, the returned task will succeed with the processed result.<br>
 	 * If the inner task fails with an exception, the returned task will fail with the same exception (same {@link Throwable} instance).<br>
-	 * If the inner task is cancelled, the returned task will be cancelled with the same payload (but a different {@link CancellationException}).<br>
+	 * If the outer task is cancelled, the inner task will be cancelled with the same payload (but a different {@link CancellationException}).<br>
+	 * <b>Calling {@code cancel()} on the inner Task will not cancel the outer task.</b> It is recommended t onot interact with the inner
+	 * task at all after calling this method.
 	 * </p><p>
 	 * If the {@link Function} throws an unchecked exception, the outer task will fail with an {@link ExecutionException}
 	 * wrapping that unchecked exception, even if the inner task succeeded.
@@ -158,13 +160,14 @@ public final class Tasks {
 		TaskOf<V> resultTask = Tasks.startBlocking(tco);
 		inner.onSuccess(value -> {
 			try {
-				tco.signalSuccess(operation.apply(value));
+				tco.trySignalSuccess(operation.apply(value));
 			} catch (Throwable e) {
-				tco.signalFailure(new ExecutionException(e));
+				tco.trySignalFailure(new ExecutionException(e));
 			}
 		});
-		inner.onFailure(thrbl -> tco.signalFailure(thrbl));
-		inner.onCancelled(canex -> resultTask.cancel(canex.getPayload()));
+		inner.onFailure(thrbl -> {
+			tco.trySignalFailure(thrbl);
+		});
 		//Outer can also cancel inner
 		resultTask.onCancelled(canex -> inner.cancel(canex.getPayload()));
 		return resultTask;
@@ -175,7 +178,9 @@ public final class Tasks {
 	 * <p>
 	 * If the inner task succeeds, the returned task will succeed with the processed result.<br>
 	 * If the inner task fails with an exception, the returned task will fail with the same exception (same {@link Throwable} instance).<br>
-	 * If the inner task is cancelled, the returned task will be cancelled with the same payload (but a different {@link CancellationException}).<br>
+	 * If the outer task is cancelled, the inner task will be cancelled with the same payload (but a different {@link CancellationException}).<br>
+	 * <b>Calling {@code cancel()} on the inner Task will not cancel the outer task.</b> It is recommended t onot interact with the inner
+	 * task at all after calling this method.
 	 * </p><p>
 	 * If the {@link Function} throws an unchecked exception, the outer task will fail with an {@link ExecutionException}
 	 * wrapping that unchecked exception, even if the inner task succeeded.
@@ -197,7 +202,9 @@ public final class Tasks {
 	 * <p>
 	 * If the inner task succeeds, the returned task will succeed with the processed result.<br>
 	 * If the inner task fails with an exception, the returned task will fail with the same exception (same {@link Throwable} instance).<br>
-	 * If the inner task is cancelled, the returned task will be cancelled with the same payload (but a different {@link CancellationException}).<br>
+	 * If the outer task is cancelled, the inner task will be cancelled with the same payload (but a different {@link CancellationException}).<br>
+	 * <b>Calling {@code cancel()} on the inner Task will not cancel the outer task.</b> It is recommended t onot interact with the inner
+	 * task at all after calling this method.
 	 * </p><p>
 	 * If the {@link Function} throws an unchecked exception, the outer task will fail with an {@link ExecutionException}
 	 * wrapping that unchecked exception, even if the inner task succeeded.
@@ -217,10 +224,16 @@ public final class Tasks {
 		Objects.requireNonNull(executor, "'executor' parameter must not be null");
 		TaskCompleterOf<V> tco = TaskCompleterOf.create();
 		TaskOf<V> resultTask = Tasks.startBlocking(tco);
-		inner.onSuccessAsync(value -> tco.signalSuccess(operation.apply(value)), executor);
-		inner.onFailureAsync(thrbl -> tco.signalFailure(thrbl), executor);
-		inner.onCancelledAsync(canex -> resultTask.cancel(canex.getPayload()), executor);
-		resultTask.onCancelledAsync(canex -> inner.cancel(canex.getPayload()), executor);
+		inner.onSuccessAsync(value -> {
+			try {
+				tco.trySignalSuccess(operation.apply(value));
+			} catch (Throwable e) {
+				tco.trySignalFailure(new ExecutionException(e));
+			}
+		}, executor);
+		inner.onFailureAsync(thrbl -> tco.trySignalFailure(thrbl), executor);
+		//Outer can also cancel inner
+		resultTask.onCancelled(canex -> inner.cancel(canex.getPayload()));
 		return resultTask;
 	}
 	
@@ -243,7 +256,13 @@ public final class Tasks {
 		Objects.requireNonNull(unit, "'unit' parameter must not be null");
 		final TaskCompleterOf<Void> completer = TaskCompleterOf.create();
 		final TaskOf<Void> delayed = new BlockingTaskOf.ConditionWaiterTaskOf<>(completer);
-		GlobalTimer.scheduleOnce(() -> completer.signalSuccess(null), timeout, unit);
+		GlobalTimer.scheduleOnce(() -> {
+			try {
+				completer.signalSuccess(null);
+			} catch (CancelledException e) {
+				//Task cancelled, nothing to do
+			}
+		}, timeout, unit);
 		return delayed;
 	}
 	
@@ -306,7 +325,13 @@ public final class Tasks {
 		Objects.requireNonNull(unit, "'unit' parameter must not be null");
 		final TaskCompleterOf<T> completer = TaskCompleterOf.create(); //Never use the completer
 		final TaskOf<T> delayed = new BlockingTaskOf.ConditionWaiterTaskOf<>(completer);
-		GlobalTimer.scheduleOnce(() -> completer.signalFailure(failureReason), timeout, unit);
+		GlobalTimer.scheduleOnce(() -> {
+			try {
+				completer.signalFailure(failureReason);
+			} catch (CancelledException e) {
+				//Ignore
+			}
+		}, timeout, unit);
 		return delayed;
 	}
 	
@@ -332,7 +357,13 @@ public final class Tasks {
 		Objects.requireNonNull(unit, "'unit' parameter must not be null");
 		final TaskCompleterOf<T> completer = TaskCompleterOf.create();
 		final TaskOf<T> delayed = new BlockingTaskOf.ConditionWaiterTaskOf<>(completer);
-		GlobalTimer.scheduleOnce(() -> completer.signalSuccess(value), timeout, unit);
+		GlobalTimer.scheduleOnce(() -> {
+			try {
+				completer.signalSuccess(value);
+			} catch (CancelledException e) {
+				//Ignore
+			}
+		}, timeout, unit);
 		return delayed;
 	}
 	

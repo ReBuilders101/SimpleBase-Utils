@@ -228,12 +228,19 @@ abstract class BlockingTaskOfInt implements TaskOfInt {
 		}
 		
 		private void setupSource(TaskCompleterOfInt tcs) throws IllegalArgumentException {
-			tcs.setup(this::succeed, this::fail);
+			tcs.setup(this::succeed, this::fail, this::getCancellationException);
 		}
 
-		private boolean succeed(int value) {
+		private boolean succeed(int value) throws CancelledException {
 			//If not waiting, someone is currently completing or completed already
 			if(!state.compareAndSet(WAITING, SUCCEEDING)) {
+				if((state.get() & CANCEL_MASK) != 0) { //Cancelling or cancelled
+					while(state.get() != CANCELLED) { //Wait for a stable state
+						Thread.onSpinWait();
+					}
+					throw taskCancellationCause;
+				}
+				//Already succeeded/failed
 				return false;
 			}
 			
@@ -251,9 +258,16 @@ abstract class BlockingTaskOfInt implements TaskOfInt {
 			return true;
 		}
 		
-		private boolean fail(Throwable throwable) {
+		private boolean fail(Throwable throwable) throws CancelledException {
 			//If not waiting, someone is currently completing or completed already
 			if(!state.compareAndSet(WAITING, FAILING)) {
+				if((state.get() & CANCEL_MASK) != 0) { //Cancelling or cancelled
+					while(state.get() != CANCELLED) { //Wait for a stable state
+						Thread.onSpinWait();
+					}
+					throw taskCancellationCause;
+				}
+				//Already succeeded/failed
 				return false;
 			}
 
