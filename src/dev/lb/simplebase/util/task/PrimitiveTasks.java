@@ -68,14 +68,17 @@ public final class PrimitiveTasks {
 	 * will signal the condition to resume waiting threads).
 	 * </p>
 	 * @param completionSource <i>&#064;</i> The {@link TaskCompleterOfBool} that will complete the task
+	 * @param canCancel If {@code true}, the task can be cancelled. This must be supported by the action represented
+	 * by the task by regularly checking {@link TaskCompleterOfBool#isCancelled()}. If {@code false}, the task cannot be cancelled.
 	 * @return A {@link TaskOfBool} that will complete when the completion source is signalled
 	 * @throws NullPointerException When {@code completionSource} is {@code null}
 	 * @throws OutParamStateException When the {@code completionSource} was already used to construct another task
 	 */
-	public static TaskOfBool startBlockingBool(@Out TaskCompleterOfBool completionSource) throws OutParamStateException {
+	public static TaskOfBool startBlockingBool(@Out TaskCompleterOfBool completionSource, boolean canCancel) throws OutParamStateException {
 		Objects.requireNonNull(completionSource, "'completionSource' parameter must not be null");
 		try {
-			return new BlockingTaskOfBool.ConditionWaiterTaskOfBool(completionSource);
+			return canCancel ? new BlockingTaskOfBool.ConditionWaiterTaskOfBool(completionSource) :
+				new BlockingTaskOfBool.NotCancellableTaskOfBool(completionSource);
 		} catch (IllegalArgumentException e) {
 			throw new OutParamStateException("'completionSource' parameter was already used for another task", e);
 		}
@@ -104,7 +107,7 @@ public final class PrimitiveTasks {
 		Objects.requireNonNull(inner, "'inner' parameter must not be null");
 		Objects.requireNonNull(operation, "'operation' parameter must not be null");
 		TaskCompleterOf<V> tco = TaskCompleterOf.create();
-		TaskOf<V> resultTask = Tasks.startBlocking(tco);
+		TaskOf<V> resultTask = Tasks.startBlocking(tco, !inner.isCancellationExpired());
 		inner.onSuccess(value -> {
 			try {
 				tco.trySignalSuccess(operation.apply(value));
@@ -165,7 +168,7 @@ public final class PrimitiveTasks {
 		Objects.requireNonNull(operation, "'operation' parameter must not be null");
 		Objects.requireNonNull(executor, "'executor' parameter must not be null");
 		TaskCompleterOf<V> tco = TaskCompleterOf.create();
-		TaskOf<V> resultTask = Tasks.startBlocking(tco);
+		TaskOf<V> resultTask = Tasks.startBlocking(tco, !inner.isCancellationExpired());
 		inner.onSuccessAsync(value -> {
 			try {
 				tco.trySignalSuccess(operation.apply(value));
@@ -201,7 +204,7 @@ public final class PrimitiveTasks {
 		Objects.requireNonNull(inner, "'inner' parameter must not be null");
 		Objects.requireNonNull(operation, "'operation' parameter must not be null");
 		TaskCompleterOfBool tco = TaskCompleterOfBool.create();
-		TaskOfBool resultTask = PrimitiveTasks.startBlockingBool(tco);
+		TaskOfBool resultTask = PrimitiveTasks.startBlockingBool(tco, !inner.isCancellationExpired());
 		inner.onSuccess(value -> {
 			try {
 				tco.trySignalSuccess(operation.test(value));
@@ -262,7 +265,7 @@ public final class PrimitiveTasks {
 		Objects.requireNonNull(operation, "'operation' parameter must not be null");
 		Objects.requireNonNull(executor, "'executor' parameter must not be null");
 		TaskCompleterOfBool tco = TaskCompleterOfBool.create();
-		TaskOfBool resultTask = PrimitiveTasks.startBlockingBool(tco);
+		TaskOfBool resultTask = PrimitiveTasks.startBlockingBool(tco, !inner.isCancellationExpired());
 		inner.onSuccessAsync(value -> {
 			try {
 				tco.trySignalSuccess(operation.test(value));
@@ -393,14 +396,17 @@ public final class PrimitiveTasks {
 	 * will signal the condition to resume waiting threads).
 	 * </p>
 	 * @param completionSource <i>&#064;Out</i> The {@link TaskCompleterOfInt} that will complete the task
+	 * @param canCancel If {@code true}, the task can be cancelled. This must be supported by the action represented
+	 * by the task by regularly checking {@link TaskCompleterOfInt#isCancelled()}. If {@code false}, the task cannot be cancelled.
 	 * @return A {@link TaskOfInt} that will complete when the completion source is signalled
 	 * @throws NullPointerException When {@code completionSource} is {@code null}
 	 * @throws OutParamStateException When the {@code completionSource} was already used to construct another task
 	 */
-	public static TaskOfInt startBlockingInt(@Out TaskCompleterOfInt completionSource) throws OutParamStateException {
+	public static TaskOfInt startBlockingInt(@Out TaskCompleterOfInt completionSource, boolean canCancel) throws OutParamStateException {
 		Objects.requireNonNull(completionSource, "'completionSource' parameter must not be null");
 		try {
-			return new BlockingTaskOfInt.ConditionWaiterTaskOfInt(completionSource);
+			return canCancel ? new BlockingTaskOfInt.ConditionWaiterTaskOfInt(completionSource) :
+				new BlockingTaskOfInt.NotCancellableTaskOfInt(completionSource);
 		} catch (IllegalArgumentException e) {
 			throw new OutParamStateException("'completionSource' parameter was already used for another task", e);
 		}
@@ -429,7 +435,7 @@ public final class PrimitiveTasks {
 		Objects.requireNonNull(inner, "'inner' parameter must not be null");
 		Objects.requireNonNull(operation, "'operation' parameter must not be null");
 		TaskCompleterOf<V> tco = TaskCompleterOf.create();
-		TaskOf<V> resultTask = Tasks.startBlocking(tco);
+		TaskOf<V> resultTask = Tasks.startBlocking(tco, !inner.isCancellationExpired());
 		inner.onSuccess(value -> {
 			try {
 				tco.trySignalSuccess(operation.apply(value));
@@ -490,7 +496,7 @@ public final class PrimitiveTasks {
 		Objects.requireNonNull(operation, "'operation' parameter must not be null");
 		Objects.requireNonNull(executor, "'executor' parameter must not be null");
 		TaskCompleterOf<V> tco = TaskCompleterOf.create();
-		TaskOf<V> resultTask = Tasks.startBlocking(tco);
+		TaskOf<V> resultTask = Tasks.startBlocking(tco, !inner.isCancellationExpired());
 		inner.onSuccessAsync(value -> {
 			try {
 				tco.trySignalSuccess(operation.apply(value));
@@ -526,7 +532,7 @@ public final class PrimitiveTasks {
 		Objects.requireNonNull(inner, "'inner' parameter must not be null");
 		Objects.requireNonNull(operation, "'operation' parameter must not be null");
 		TaskCompleterOfInt tco = TaskCompleterOfInt.create();
-		TaskOfInt resultTask = PrimitiveTasks.startBlockingInt(tco);
+		TaskOfInt resultTask = PrimitiveTasks.startBlockingInt(tco, !inner.isCancellationExpired());
 		inner.onSuccess(value -> {
 			try {
 				tco.trySignalSuccess(operation.applyAsInt(value));
@@ -587,7 +593,7 @@ public final class PrimitiveTasks {
 		Objects.requireNonNull(operation, "'operation' parameter must not be null");
 		Objects.requireNonNull(executor, "'executor' parameter must not be null");
 		TaskCompleterOfInt tco = TaskCompleterOfInt.create();
-		TaskOfInt resultTask = PrimitiveTasks.startBlockingInt(tco);
+		TaskOfInt resultTask = PrimitiveTasks.startBlockingInt(tco, !inner.isCancellationExpired());
 		inner.onSuccessAsync(value -> {
 			try {
 				tco.trySignalSuccess(operation.applyAsInt(value));

@@ -72,7 +72,7 @@ public interface Task {
 	
 	/**
 	 * Returns {@code true} when cancelling the associated action is no longer possible because the action was completed,
-	 * has failed or was already cancelled.
+	 * has failed, was already cancelled or cannot be cancelled.
 	 * @return {@code true} if the action can no longer be cancelled, {@code false} if cancellation is still possible
 	 */
 	public boolean isCancellationExpired();

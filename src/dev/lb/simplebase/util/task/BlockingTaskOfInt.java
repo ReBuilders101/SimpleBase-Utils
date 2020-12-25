@@ -185,6 +185,32 @@ abstract class BlockingTaskOfInt implements TaskOfInt {
 	}
 	
 	@Internal
+	static class NotCancellableTaskOfInt extends ConditionWaiterTaskOfInt {
+
+		NotCancellableTaskOfInt(TaskCompleterOfInt source) {
+			super(source);
+		}
+
+		@Override
+		public boolean cancel(Object exceptionPayload) {
+			return false;
+		}
+
+		@Override
+		public boolean isCancellationExpired() {
+			return true;
+		}
+
+		@Override
+		public boolean isCancelled() {
+			return false;
+		}
+		
+		
+		
+	}
+	
+	@Internal
 	static class ConditionWaiterTaskOfInt extends BlockingTaskOfInt {
 
 		private volatile CancelledException taskCancellationCause;

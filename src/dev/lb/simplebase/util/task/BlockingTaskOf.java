@@ -184,6 +184,30 @@ abstract class BlockingTaskOf<T> implements TaskOf<T> {
 	}
 	
 	@Internal
+	static class NotCancellableTaskOf<T> extends ConditionWaiterTaskOf<T> {
+		
+		NotCancellableTaskOf(TaskCompleterOf<T> source) {
+			super(source);
+		}
+
+		@Override
+		public boolean cancel(Object exceptionPayload) {
+			return false;
+		}
+
+		@Override
+		public boolean isCancellationExpired() {
+			return true;
+		}
+
+		@Override
+		public boolean isCancelled() {
+			return false;
+		}
+		
+	}
+	
+	@Internal
 	static class ConditionWaiterTaskOf<T> extends BlockingTaskOf<T> {
 
 		private volatile CancelledException taskCancellationCause;

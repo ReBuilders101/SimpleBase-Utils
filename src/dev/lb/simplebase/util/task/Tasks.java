@@ -98,14 +98,17 @@ public final class Tasks {
 	 * will signal the condition to resume waiting threads).
 	 * </p>
 	 * @param completionSource <i>&#064;Out</i> The {@link TaskCompleter} that will complete the task
+	 * @param canCancel If {@code true}, the task can be cancelled. This must be supported by the action represented
+	 * by the task by regularly checking {@link TaskCompleter#isCancelled()}. If {@code false}, the task cannot be cancelled.
 	 * @return A {@link Task} that will complete when the completion source is signalled
 	 * @throws NullPointerException When {@code completionSource} is {@code null}
 	 * @throws OutParamStateException When the {@code completionSource} was already used to construct another task
 	 */
-	public static Task startBlocking(@Out TaskCompleter completionSource) throws OutParamStateException {
+	public static Task startBlocking(@Out TaskCompleter completionSource, boolean canCancel) throws OutParamStateException {
 		Objects.requireNonNull(completionSource, "'completionSource' parameter must not be null");
 		try {
-			return new BlockingTaskOf.ConditionWaiterTaskOf<>(completionSource.inner());
+			return canCancel ? new BlockingTaskOf.ConditionWaiterTaskOf<>(completionSource.inner()) :
+				new BlockingTaskOf.NotCancellableTaskOf<>(completionSource.inner());
 		} catch (IllegalArgumentException e) {
 			throw new OutParamStateException("'completionSource' parameter was already used for another task", e);
 		}
@@ -120,14 +123,17 @@ public final class Tasks {
 	 * </p>
 	 * @param <T> The result type of the task
 	 * @param completionSource <i>&#064;Out</i> The {@link TaskCompleterOf} that will complete the task
+	 * @param canCancel If {@code true}, the task can be cancelled. This must be supported by the action represented
+	 * by the task by regularly checking {@link TaskCompleterOf#isCancelled()}. If {@code false}, the task cannot be cancelled.
 	 * @return A {@link TaskOf} that will complete when the completion source is signalled
 	 * @throws NullPointerException When {@code completionSource} is {@code null}
 	 * @throws OutParamStateException When the {@code completionSource} was already used to construct another task
 	 */
-	public static <T> TaskOf<T> startBlocking(@Out TaskCompleterOf<T> completionSource) throws OutParamStateException {
+	public static <T> TaskOf<T> startBlocking(@Out TaskCompleterOf<T> completionSource, boolean canCancel) throws OutParamStateException {
 		Objects.requireNonNull(completionSource, "'completionSource' parameter must not be null");
 		try {
-			return new BlockingTaskOf.ConditionWaiterTaskOf<>(completionSource);
+			return canCancel ? new BlockingTaskOf.ConditionWaiterTaskOf<>(completionSource) :
+				new BlockingTaskOf.NotCancellableTaskOf<>(completionSource);
 		} catch (IllegalArgumentException e) {
 			throw new OutParamStateException("'completionSource' parameter was already used for another task", e);
 		}
@@ -157,7 +163,7 @@ public final class Tasks {
 		Objects.requireNonNull(inner, "'inner' parameter must not be null");
 		Objects.requireNonNull(operation, "'operation' parameter must not be null");
 		TaskCompleterOf<V> tco = TaskCompleterOf.create();
-		TaskOf<V> resultTask = Tasks.startBlocking(tco);
+		TaskOf<V> resultTask = Tasks.startBlocking(tco, !inner.isCancellationExpired());
 		inner.onSuccess(value -> {
 			try {
 				tco.trySignalSuccess(operation.apply(value));
@@ -223,7 +229,7 @@ public final class Tasks {
 		Objects.requireNonNull(operation, "'operation' parameter must not be null");
 		Objects.requireNonNull(executor, "'executor' parameter must not be null");
 		TaskCompleterOf<V> tco = TaskCompleterOf.create();
-		TaskOf<V> resultTask = Tasks.startBlocking(tco);
+		TaskOf<V> resultTask = Tasks.startBlocking(tco, !inner.isCancellationExpired());
 		inner.onSuccessAsync(value -> {
 			try {
 				tco.trySignalSuccess(operation.apply(value));
