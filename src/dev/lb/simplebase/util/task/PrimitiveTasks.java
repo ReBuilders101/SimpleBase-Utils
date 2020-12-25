@@ -112,6 +112,7 @@ public final class PrimitiveTasks {
 		});
 		inner.onFailure(thrbl -> tco.signalFailure(thrbl));
 		inner.onCancelled(canex -> resultTask.cancel(canex.getPayload()));
+		resultTask.onCancelled(canex -> inner.cancel(canex.getPayload()));
 		return resultTask;
 	}
 	
@@ -163,6 +164,7 @@ public final class PrimitiveTasks {
 		inner.onSuccessAsync(value -> tco.signalSuccess(operation.apply(value)), executor);
 		inner.onFailureAsync(thrbl -> tco.signalFailure(thrbl), executor);
 		inner.onCancelledAsync(canex -> resultTask.cancel(canex.getPayload()), executor);
+		resultTask.onCancelledAsync(canex -> inner.cancel(canex.getPayload()), executor);
 		return resultTask;
 	}
 	
@@ -197,6 +199,7 @@ public final class PrimitiveTasks {
 		});
 		inner.onFailure(thrbl -> tco.signalFailure(thrbl));
 		inner.onCancelled(canex -> resultTask.cancel(canex.getPayload()));
+		resultTask.onCancelled(canex -> inner.cancel(canex.getPayload()));
 		return resultTask;
 	}
 	
@@ -248,6 +251,7 @@ public final class PrimitiveTasks {
 		inner.onSuccessAsync(value -> tco.signalSuccess(operation.test(value)), executor);
 		inner.onFailureAsync(thrbl -> tco.signalFailure(thrbl), executor);
 		inner.onCancelledAsync(canex -> resultTask.cancel(canex.getPayload()), executor);
+		resultTask.onCancelledAsync(canex -> inner.cancel(canex.getPayload()), executor);
 		return resultTask;
 	}
 	
@@ -413,6 +417,7 @@ public final class PrimitiveTasks {
 		});
 		inner.onFailure(thrbl -> tco.signalFailure(thrbl));
 		inner.onCancelled(canex -> resultTask.cancel(canex.getPayload()));
+		resultTask.onCancelled(canex -> inner.cancel(canex.getPayload()));
 		return resultTask;
 	}
 	
@@ -464,6 +469,7 @@ public final class PrimitiveTasks {
 		inner.onSuccessAsync(value -> tco.signalSuccess(operation.apply(value)), executor);
 		inner.onFailureAsync(thrbl -> tco.signalFailure(thrbl), executor);
 		inner.onCancelledAsync(canex -> resultTask.cancel(canex.getPayload()), executor);
+		resultTask.onCancelledAsync(canex -> inner.cancel(canex.getPayload()), executor);
 		return resultTask;
 	}
 	
@@ -498,6 +504,7 @@ public final class PrimitiveTasks {
 		});
 		inner.onFailure(thrbl -> tco.signalFailure(thrbl));
 		inner.onCancelled(canex -> resultTask.cancel(canex.getPayload()));
+		resultTask.onCancelled(canex -> inner.cancel(canex.getPayload()));
 		return resultTask;
 	}
 	
@@ -549,6 +556,7 @@ public final class PrimitiveTasks {
 		inner.onSuccessAsync(value -> tco.signalSuccess(operation.applyAsInt(value)), executor);
 		inner.onFailureAsync(thrbl -> tco.signalFailure(thrbl), executor);
 		inner.onCancelledAsync(canex -> resultTask.cancel(canex.getPayload()), executor);
+		resultTask.onCancelledAsync(canex -> inner.cancel(canex.getPayload()), executor);
 		return resultTask;
 	}
 	

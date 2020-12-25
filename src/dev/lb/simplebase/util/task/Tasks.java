@@ -165,6 +165,8 @@ public final class Tasks {
 		});
 		inner.onFailure(thrbl -> tco.signalFailure(thrbl));
 		inner.onCancelled(canex -> resultTask.cancel(canex.getPayload()));
+		//Outer can also cancel inner
+		resultTask.onCancelled(canex -> inner.cancel(canex.getPayload()));
 		return resultTask;
 	}
 	
@@ -218,6 +220,7 @@ public final class Tasks {
 		inner.onSuccessAsync(value -> tco.signalSuccess(operation.apply(value)), executor);
 		inner.onFailureAsync(thrbl -> tco.signalFailure(thrbl), executor);
 		inner.onCancelledAsync(canex -> resultTask.cancel(canex.getPayload()), executor);
+		resultTask.onCancelledAsync(canex -> inner.cancel(canex.getPayload()), executor);
 		return resultTask;
 	}
 	
