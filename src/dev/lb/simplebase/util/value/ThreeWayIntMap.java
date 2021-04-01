@@ -1,5 +1,7 @@
 package dev.lb.simplebase.util.value;
 
+import java.util.Arrays;
+
 /**
  * Contains entries of three unique int values that can be addressed by any of the three values in constant time.
  * Not threadsafe.
@@ -222,6 +224,8 @@ public class ThreeWayIntMap {
 					Node[] newNodes = new Node[cap];
 					//Different hash mask, copy every entry individually
 					for(Node n : nodes[i]) { //Iterate old nodes
+						if(n == null) continue;
+						
 						//New hash for ith value
 						int hash = hash2mask(cap, n.entry.values[i]);
 						newNodes[hash] = n;
@@ -277,6 +281,28 @@ public class ThreeWayIntMap {
 		 */
 		public int getValue3() {
 			return values[2];
+		}
+
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			result = prime * result + Arrays.hashCode(values);
+			return result;
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (getClass() != obj.getClass())
+				return false;
+			Entry other = (Entry) obj;
+			if (!Arrays.equals(values, other.values))
+				return false;
+			return true;
 		}
 	}
 	
