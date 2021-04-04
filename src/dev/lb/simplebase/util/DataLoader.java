@@ -53,7 +53,7 @@ public final class DataLoader {
 			if(channel.position() != fileSize) //Validate that we read everything
 				throw new IOException("File size after prepearing data buffer for reading");
 		}
-		return buffer;
+		return buffer.flip();
 	}
 	
 	/**
